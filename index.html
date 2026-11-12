@@ -103,6 +103,8 @@ details summary::-webkit-details-marker{display:none}
 .who{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
 .who img{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);flex:none;object-fit:cover}
 .who img[src=""]{visibility:hidden}
+.wait{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--accent-soft);color:var(--accent)}
+.wait .hint{color:var(--accent);opacity:.8}
 .hidden{display:none!important}
 </style>
 </head>
@@ -253,6 +255,11 @@ details summary::-webkit-details-marker{display:none}
       </div>
       <div class="row" style="margin-top:8px"><button class="btn" id="testSend" style="flex:1;justify-content:center">Send a test to myself</button></div>
       <div id="sendNote"></div>
+      <div class="wait hidden" id="waitBox">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <div style="min-width:0"><div style="font-weight:600" id="waitText">Next email in 1 min</div><div class="hint" style="margin:0" id="waitSub">Pausing between emails keeps you out of spam</div></div>
+        <button class="btn" id="skipWait" style="margin-left:auto;padding:6px 12px;flex:none">Send next now</button>
+      </div>
       <div class="prog"><i id="progBar"></i></div>
       <div class="row" style="justify-content:space-between;font-size:13px">
         <span><b id="r_done">0</b> / <span id="r_total">0</span> processed</span>
@@ -287,6 +294,23 @@ function recall(k){ try{ return localStorage.getItem('bm_'+k) }catch(e){ return 
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) }
 function note(id, kind, msg){ $(id).innerHTML = msg ? `<div class="note ${kind}">${msg}</div>` : '' }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+/* Timer that keeps ticking in background tabs (Chrome heavily slows page timers when a tab is hidden). */
+const tick = (() => {
+  try {
+    const w = new Worker(URL.createObjectURL(new Blob(['onmessage=e=>setTimeout(()=>postMessage(e.data.id),e.data.ms)'], {type:'text/javascript'})));
+    const waiters = {}; let n = 0;
+    w.onmessage = e => { const f = waiters[e.data]; delete waiters[e.data]; if (f) f() };
+    return ms => new Promise(r => { const id = ++n; waiters[id] = r; w.postMessage({id, ms}) });
+  } catch(e){ return sleep }
+})();
+let wakeLock = null, skipFlag = false;
+async function keepAwake(on){
+  try {
+    if (on && 'wakeLock' in navigator && !wakeLock){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null }) }
+    if (!on && wakeLock){ await wakeLock.release(); wakeLock = null }
+  } catch(e){}
+}
+document.addEventListener('visibilitychange', () => { if (running && document.visibilityState === 'visible') keepAwake(true) });
 function today(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') }
 function stamp(){ const d = new Date(); return today()+' '+d.toTimeString().slice(0,8) }
 
@@ -645,6 +669,7 @@ $('testSend').onclick = async () => {
   note('sendNote', r.ok ? 'ok' : 'bad', r.ok ? `Test sent to ${esc(r.to)}, filled with the row shown in the preview.` : 'Test failed: ' + esc(r.error));
 };
 $('stop').onclick = () => { stopFlag = true; $('runState').textContent = 'Stopping…'; addLog('warn','Stopping…') };
+$('skipWait').onclick = () => { skipFlag = true };
 window.addEventListener('beforeunload', e => { if (running){ e.preventDefault(); e.returnValue = '' } });
 
 $('start').onclick = async () => {
@@ -654,7 +679,7 @@ $('start').onclick = async () => {
   const queue = sendIdx.slice(0, left === Infinity ? undefined : left);
   const subjectTpl = $('subject').value, bodyTpl = $('body').value, att = attPayload();
   const minD = Math.max(0, +$('minD').value || 0), maxD = Math.max(minD, +$('maxD').value || 0);
-  note('sendNote','',''); stopFlag = false; setRunning(true);
+  note('sendNote','',''); stopFlag = false; setRunning(true); keepAwake(true);
   let sent = 0, failed = 0, fatal = '';
   addLog('info', `Starting: ${queue.length} to send` + (queue.length < sendIdx.length ? ` (${sendIdx.length - queue.length} left for later, daily limit)` : ''));
   progress(0, queue.length, 0, 0);
@@ -662,18 +687,30 @@ $('start').onclick = async () => {
   for (let k = 0; k < queue.length; k++){
     if (stopFlag) break;
     const row = rows[queue[k]], to = String(row[emailCol]).trim();
-    $('r_next').textContent = 'sending…';
+    $('r_next').textContent = 'sending…'; $('runState').textContent = `Sending ${k+1} of ${queue.length}`;
     const r = await sendOne(false, to, render(subjectTpl, row).out, render(bodyTpl, row).out, att);
     if (r.ok){ sent++; sentMap[to.toLowerCase()] = stamp(); saveHist(); addLog('ok', `Sent to ${to}`) }
     else { failed++; addLog('bad', `Failed ${to}: ${r.error}`); if (r.fatal){ fatal = r.error; break } }
     progress(k+1, queue.length, sent, failed);
     if (k < queue.length - 1 && !stopFlag){
-      let wait = Math.floor(minD + Math.random() * (maxD - minD + 1));
-      while (wait > 0 && !stopFlag){ $('r_next').textContent = `next in ${fmtDur(wait)}`; await sleep(1000); wait-- }
+      const wait = Math.floor(minD + Math.random() * (maxD - minD + 1));
+      if (wait > 0){
+        const until = Date.now() + wait * 1000, nextTo = String(rows[queue[k+1]][emailCol]).trim();
+        skipFlag = false; $('waitBox').classList.remove('hidden'); $('runState').textContent = 'Waiting';
+        $('waitSub').textContent = `${k+1} of ${queue.length} done · next: ${nextTo}`;
+        addLog('info', `Waiting ${fmtDur(wait)} before the next email`);
+        while (!stopFlag && !skipFlag){
+          const leftMs = until - Date.now(); if (leftMs <= 0) break;
+          const s = Math.ceil(leftMs / 1000);
+          $('waitText').textContent = `Next email in ${fmtDur(s)}`; $('r_next').textContent = `next in ${fmtDur(s)}`;
+          await tick(Math.min(1000, leftMs));
+        }
+        $('waitBox').classList.add('hidden');
+      }
     }
   }
-  $('r_next').textContent = '';
-  setRunning(false);
+  $('r_next').textContent = ''; $('waitBox').classList.add('hidden');
+  keepAwake(false); setRunning(false);
   if (fatal){ $('runState').textContent = 'Error'; note('sendNote','bad', 'Stopped: ' + esc(fatal)) }
   else if (stopFlag){ $('runState').textContent = 'Stopped'; note('sendNote','warn', `Stopped. ${sent} sent, ${failed} failed. Start again any time; people already emailed are skipped.`) }
   else { $('runState').textContent = 'Finished'; note('sendNote','ok', `Finished: ${sent} sent, ${failed} failed.`) }
