@@ -5,20 +5,34 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bulk Mailer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-:root{--bg:#f4f5f7;--card:#ffffff;--text:#171a1f;--muted:#667085;--line:#e4e7ec;--soft:#f9fafb;
---accent:#4338ca;--accent-h:#3730a3;--accent-soft:#eef2ff;--ok:#047857;--ok-soft:#ecfdf5;--bad:#b42318;--bad-soft:#fef3f2;--warn:#b54708;--warn-soft:#fffaeb;
---r:14px;--shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06)}
-@media (prefers-color-scheme:dark){:root{--bg:#0d0f13;--card:#161920;--text:#e9ebef;--muted:#98a2b3;--line:#262b34;--soft:#1b1f27;
---accent:#818cf8;--accent-h:#a5b4fc;--accent-soft:#1f1d47;--ok:#34d399;--ok-soft:#0d2a21;--bad:#f97066;--bad-soft:#2d1514;--warn:#fdb022;--warn-soft:#2b2010;--shadow:none}}
+:root{color-scheme:dark;--bg:#060807;--card:#0c100e;--text:#e6f2e8;--muted:#7f9184;--line:#1a231d;--soft:#111712;
+--accent:#05fb06;--accent-h:#5bff5c;--accent-soft:rgba(5,251,6,.09);--on-accent:#021a03;--glow:0 0 18px rgba(5,251,6,.35);
+--ok:#05fb06;--ok-soft:rgba(5,251,6,.09);--bad:#ff5468;--bad-soft:rgba(255,84,104,.1);--warn:#ffc53d;--warn-soft:rgba(255,197,61,.1);
+--r:14px;--shadow:0 1px 0 rgba(255,255,255,.02) inset;--mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
-.bar{max-width:1320px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:12px}
-.logo{width:34px;height:34px;border-radius:10px;background:var(--accent);display:grid;place-items:center;color:#fff;flex:none}
+html{scrollbar-color:#1f5a20 var(--bg);scrollbar-width:thin}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#174a18;border-radius:99px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+::-webkit-scrollbar-corner{background:var(--bg)}
+*{scrollbar-color:#1f5a20 transparent;scrollbar-width:thin}
+::selection{background:rgba(5,251,6,.3);color:#fff}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif;
+background-image:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(5,251,6,.08),transparent 70%),linear-gradient(rgba(5,251,6,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(5,251,6,.025) 1px,transparent 1px);
+background-size:100% 100%,40px 40px,40px 40px;background-attachment:fixed}
+header{position:sticky;top:0;z-index:5;background:rgba(6,8,7,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.bar{max-width:1320px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:12px}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--accent);display:grid;place-items:center;color:var(--on-accent);flex:none;box-shadow:var(--glow)}
+.nav{display:flex;gap:4px;margin-left:18px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
+.nav a{color:var(--muted);text-decoration:none;font-weight:600;font-size:13px;padding:6px 14px;border-radius:7px}
+.nav a:hover{color:var(--text)}
+.nav a.on{background:var(--accent-soft);color:var(--accent)}
+@media (max-width:640px){.bar .sub{display:none}.nav{margin-left:auto}.pill{display:none}}
 .bar h1{font-size:17px;margin:0;font-weight:700}
 .bar .sub{color:var(--muted);font-size:13px}
 .pill{margin-left:auto;font-size:12px;font-weight:600;padding:5px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--line);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50%}
@@ -31,7 +45,8 @@ main{max-width:1320px;margin:0 auto;padding:20px;display:grid;grid-template-colu
 @media (max-width:980px){.side{position:static}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
 .hd{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
-.num{width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:12px;display:grid;place-items:center;flex:none}
+.num{width:24px;height:24px;border-radius:7px;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:12px;display:grid;place-items:center;flex:none;font-family:var(--mono);border:1px solid rgba(5,251,6,.25)}
+.card{background:linear-gradient(180deg,rgba(17,24,19,.92),rgba(12,16,14,.92))}
 .hd h2{font-size:15px;margin:0;font-weight:600}
 .hd .meta{margin-left:auto;color:var(--muted);font-size:12px;text-align:right}
 .bd{padding:18px}
@@ -39,14 +54,15 @@ main{max-width:1320px;margin:0 auto;padding:20px;display:grid;grid-template-colu
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 @media (max-width:560px){.grid,.grid3{grid-template-columns:1fr}}
 label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
-input,select,textarea{width:100%;font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 11px;outline:none}
+input,select,textarea{width:100%;font:inherit;color:var(--text);background:#080b09;border:1px solid var(--line);border-radius:9px;padding:9px 11px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 textarea{resize:vertical;min-height:260px;line-height:1.6}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .btn{font:inherit;font-weight:600;border-radius:9px;padding:9px 15px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
 .btn:hover{background:var(--soft)}
-.btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:transparent;font-weight:700;box-shadow:var(--glow)}
 .btn.primary:hover{background:var(--accent-h)}
+.btn.primary svg{stroke:var(--on-accent)}
 .btn.danger{color:var(--bad)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn.big{padding:12px 18px;font-size:15px;flex:1;justify-content:center}
@@ -64,7 +80,7 @@ textarea{resize:vertical;min-height:260px;line-height:1.6}
 .stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:14px 0}
 @media (max-width:700px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .stat{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
-.stat .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;font-family:var(--mono)}
 .stat .l{font-size:11px;color:var(--muted);font-weight:500}
 .stat.good .v{color:var(--ok)}.stat.badv .v{color:var(--bad)}.stat.acc{background:var(--accent-soft);border-color:transparent}.stat.acc .v{color:var(--accent)}
 .tbl{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:340px}
@@ -90,7 +106,15 @@ tr.inv td{background:var(--bad-soft)}tr.dup td,tr.done td{color:var(--muted)}
 .mail .b{padding:14px;white-space:pre-wrap;word-wrap:break-word;max-height:380px;overflow:auto;line-height:1.6}
 .miss{background:var(--warn-soft);color:var(--warn);border-radius:4px;padding:0 3px}
 .prog{height:10px;background:var(--soft);border:1px solid var(--line);border-radius:99px;overflow:hidden;margin:14px 0 8px}
-.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s;box-shadow:var(--glow)}
+.presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+@media (max-width:560px){.presets{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.preset{font:inherit;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--soft);color:var(--text);cursor:pointer}
+.preset b{display:block;font-size:13px}.preset span{font-size:11px;color:var(--muted)}
+.preset:hover{border-color:rgba(5,251,6,.4)}
+.preset.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent) inset}
+.preset.on b{color:var(--accent)}
+#r_done,#r_sent,#r_fail,#r_total{font-family:var(--mono)}
 .log{margin-top:12px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
 .log div{padding:5px 10px;border-bottom:1px solid var(--line);display:flex;gap:8px}
 .log div:last-child{border-bottom:0}
@@ -112,6 +136,7 @@ details summary::-webkit-details-marker{display:none}
 <header><div class="bar">
   <div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></div>
   <div><h1>Bulk Mailer</h1><div class="sub">Personalized emails from your spreadsheet</div></div>
+  <nav class="nav"><a href="/" class="on">Send</a><a href="/records.html">Records</a></nav>
   <span class="pill" id="pill">Not connected</span>
 </div></header>
 
@@ -214,12 +239,19 @@ details summary::-webkit-details-marker{display:none}
   <section class="card">
     <div class="hd"><span class="num">4</span><h2>Sending pace</h2><span class="meta" id="eta"></span></div>
     <div class="bd">
-      <div class="grid3">
-        <div><label>Min gap (seconds)</label><input id="minD" type="number" min="0" value="90"></div>
-        <div><label>Max gap (seconds)</label><input id="maxD" type="number" min="0" value="240"></div>
-        <div><label>Daily limit (0 = none)</label><input id="limit" type="number" min="0" value="50"></div>
+      <div class="presets" id="presets">
+        <button class="preset" data-min="0" data-max="0"><b>Back to back</b><span>No pause, fastest</span></button>
+        <button class="preset" data-min="5" data-max="15"><b>Fast</b><span>5&ndash;15 s apart</span></button>
+        <button class="preset" data-min="90" data-max="240"><b>Safe</b><span>1.5&ndash;4 min apart</span></button>
+        <button class="preset" data-custom="1"><b>Custom</b><span>Set your own</span></button>
       </div>
-      <div class="hint">A random gap between emails and a modest daily limit help keep you out of spam. Gmail accounts can send about 500 a day at most; Google Workspace about 2,000.</div>
+      <div class="grid3">
+        <div><label>Min gap (seconds)</label><input id="minD" type="number" min="0" value="0"></div>
+        <div><label>Max gap (seconds)</label><input id="maxD" type="number" min="0" value="0"></div>
+        <div><label>Daily limit (0 = none)</label><input id="limit" type="number" min="0" value="1000"></div>
+      </div>
+      <div class="hint">Sending runs on its own from the first email to the last. You just press Start once. Google caps regular Gmail accounts at about 500 emails a day (Google Workspace about 2,000); if Google says the limit is reached, sending stops and you can continue the next day.</div>
+      <div id="paceWarn"></div>
     </div>
   </section>
 </div>
@@ -311,6 +343,23 @@ async function keepAwake(on){
   } catch(e){}
 }
 document.addEventListener('visibilitychange', () => { if (running && document.visibilityState === 'visible') keepAwake(true) });
+
+/* ---------- records database (shared with records.html) ---------- */
+const DB = (() => {
+  let p = null;
+  const open = () => p || (p = new Promise((res, rej) => {
+    const r = indexedDB.open('bulk-mailer', 1);
+    r.onupgradeneeded = () => { const d = r.result;
+      if (!d.objectStoreNames.contains('records')){ const s = d.createObjectStore('records', {keyPath:'id', autoIncrement:true}); s.createIndex('time','time') }
+      if (!d.objectStoreNames.contains('runs')) d.createObjectStore('runs', {keyPath:'id'}) };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const tx = async (store, mode, fn) => { try { const d = await open(); return await new Promise((res, rej) => {
+    const t = d.transaction(store, mode), q = fn(t.objectStore(store)); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error) }) } catch(e){ return null } };
+  return { add: (s, v) => tx(s, 'readwrite', o => o.add(v)), put: (s, v) => tx(s, 'readwrite', o => o.put(v)) };
+})();
+const pick = (row, re) => { const k = Object.keys(row || {}).find(k => re.test(k.trim())); return k ? String(row[k]).trim() : '' };
+let listName = '';
 function today(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') }
 function stamp(){ const d = new Date(); return today()+' '+d.toTimeString().slice(0,8) }
 
@@ -392,7 +441,7 @@ function showSignedIn(){
   const saved = recall('fromName');
   $('fromName').value = saved !== null && saved !== '' ? saved : (sender.from_name || sender.name || '');
   $('accMeta').textContent = sender.from; $('accBox').open = true;
-  setPill(); renderPreview();
+  setPill(); renderPreview(); renderEta();
 }
 $('fromName').addEventListener('input', () => { store('fromName', $('fromName').value); renderPreview() });
 
@@ -470,7 +519,11 @@ async function sendOne(test, to, subject, body, att){
     const j = await r.json().catch(() => ({}));
     const msg = (j.error && j.error.message) || ('Gmail error ' + r.status);
     if (r.status === 401){ gTok = null; return {ok:false, error: msg} }
-    if (r.status === 429) return {ok:false, fatal:true, error:'Gmail sending limit reached for now. Try again later. (' + msg + ')'};
+    if (r.status === 429 || (r.status === 403 && /rate ?limit|quota/i.test(msg))){
+      if (/daily|per day/i.test(msg)) return {ok:false, fatal:true, error:'Google’s daily sending limit for this account is reached. Continue tomorrow; people already emailed are skipped. (' + msg + ')'};
+      return {ok:false, retry:true, error: msg};
+    }
+    if (r.status >= 500) return {ok:false, retry:true, error: msg};
     return {ok:false, fatal: r.status === 403, error: msg};
   } catch(e){ return {ok:false, error:'Network error: ' + e.message} }
 }
@@ -527,6 +580,7 @@ function readList(file){
         $('sheetWrap').classList.toggle('hidden', wb.SheetNames.length < 2);
         loadSheet(wb.SheetNames[0]);
       }
+      listName = file.name;
       $('fileName').textContent = file.name + ' · ' + (file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(file.size/1024))+' KB');
       $('drop').classList.add('hidden'); $('listArea').classList.remove('hidden');
     } catch(err){ alert('Could not read this file: ' + err.message) }
@@ -634,13 +688,28 @@ $('attList').addEventListener('click', e => { if (e.target.dataset.i !== undefin
 const attPayload = () => attachments.map(a => ({name:a.name, type:a.type, data:a.data}));
 
 /* ---------- pace ---------- */
-['minD','maxD','limit'].forEach(id => { const v = recall(id); if (v !== null) $(id).value = v; $(id).addEventListener('input', () => { store(id, $(id).value); renderEta() }) });
-function fmtDur(s){ if (s < 60) return Math.round(s)+'s'; const h = Math.floor(s/3600), m = Math.round((s%3600)/60); return h ? `${h}h ${m}m` : `${m} min` }
+if (recall('v') !== '3'){ ['minD','maxD','limit'].forEach(k => forget(k)); store('v','3') }  // drop old saved slow gaps
+['minD','maxD','limit'].forEach(id => { const v = recall(id); if (v !== null) $(id).value = v; $(id).addEventListener('input', () => { store(id, $(id).value); syncPreset(); renderEta() }) });
+function syncPreset(){
+  const a = +$('minD').value || 0, b = +$('maxD').value || 0; let found = false;
+  document.querySelectorAll('.preset').forEach(p => { const on = !p.dataset.custom && +p.dataset.min === a && +p.dataset.max === b; p.classList.toggle('on', on); if (on) found = true });
+  if (!found) document.querySelector('.preset[data-custom]').classList.add('on');
+}
+$('presets').addEventListener('click', e => {
+  const p = e.target.closest('.preset'); if (!p || running) return;
+  if (p.dataset.custom){ document.querySelectorAll('.preset').forEach(x => x.classList.toggle('on', x === p)); $('minD').focus(); return }
+  $('minD').value = p.dataset.min; $('maxD').value = p.dataset.max; store('minD', p.dataset.min); store('maxD', p.dataset.max);
+  syncPreset(); renderEta();
+});
+function fmtDur(s){ if (s < 60) return Math.max(1, Math.round(s))+'s'; const h = Math.floor(s/3600), m = Math.round((s%3600)/60); return h ? `${h}h ${m}m` : `${m} min` }
 function renderEta(){
   const n = sendIdx.length, lim = +$('limit').value || 0, left = lim ? Math.max(0, lim - sentToday()) : n, now = Math.min(n, left);
   const avg = ((+$('minD').value||0) + (+$('maxD').value||0)) / 2;
-  $('eta').textContent = n ? `${now.toLocaleString()} today · about ${fmtDur(Math.max(0,now-1)*avg)}` + (lim && n > now ? ` · ${(n-now).toLocaleString()} left for later` : '') : '';
+  $('eta').textContent = n ? `${now.toLocaleString()} today · about ${fmtDur(now*1.2 + Math.max(0,now-1)*avg)}` + (lim && n > now ? ` · ${(n-now).toLocaleString()} left for later` : '') : '';
+  note('paceWarn', 'warn', sender && /@gmail\.com$/i.test(sender.from) && (lim === 0 || lim > 500)
+    ? 'Heads up: Google allows about 500 emails a day from a regular @gmail.com account. Above that, Gmail blocks sending for about 24 hours. A Google Workspace address allows about 2,000.' : '');
 }
+syncPreset();
 
 /* ---------- send ---------- */
 function addLog(k, m){ logs.unshift({t:new Date().toTimeString().slice(0,8), k, m}); logs = logs.slice(0, 300);
@@ -665,7 +734,9 @@ $('testSend').onclick = async () => {
   if (!sender) return note('sendNote','bad','Connect first (step 1).');
   note('sendNote','warn','Sending test…');
   const row = sendIdx.length ? rows[sendIdx[pv]] : {};
-  const r = await sendOne(true, null, render($('subject').value, row).out, render($('body').value, row).out, attPayload());
+  const tSubj = render($('subject').value, row).out;
+  const r = await sendOne(true, null, tSubj, render($('body').value, row).out, attPayload());
+  DB.add('records', {time:new Date().toISOString(), to: r.to || (sender && sender.from) || '', name:'', business:'', subject:'[TEST] ' + tSubj, status:'test', error: r.ok ? '' : r.error, run:'', from: sender.from});
   note('sendNote', r.ok ? 'ok' : 'bad', r.ok ? `Test sent to ${esc(r.to)}, filled with the row shown in the preview.` : 'Test failed: ' + esc(r.error));
 };
 $('stop').onclick = () => { stopFlag = true; $('runState').textContent = 'Stopping…'; addLog('warn','Stopping…') };
@@ -681,35 +752,54 @@ $('start').onclick = async () => {
   const minD = Math.max(0, +$('minD').value || 0), maxD = Math.max(minD, +$('maxD').value || 0);
   note('sendNote','',''); stopFlag = false; setRunning(true); keepAwake(true);
   let sent = 0, failed = 0, fatal = '';
+  const run = {id: String(Date.now()), started: new Date().toISOString(), finished: null, file: listName, subject: subjectTpl,
+               from: sender.from, mode: sender.mode, total: queue.length, sent: 0, failed: 0, status: 'running', error: ''};
+  DB.put('runs', run);
   addLog('info', `Starting: ${queue.length} to send` + (queue.length < sendIdx.length ? ` (${sendIdx.length - queue.length} left for later, daily limit)` : ''));
   progress(0, queue.length, 0, 0);
+
+  async function pause(sec, title, sub){
+    const until = Date.now() + sec * 1000;
+    skipFlag = false; $('waitBox').classList.remove('hidden'); $('runState').textContent = 'Waiting'; $('waitSub').textContent = sub;
+    while (!stopFlag && !skipFlag){
+      const leftMs = until - Date.now(); if (leftMs <= 0) break;
+      const s = Math.ceil(leftMs / 1000);
+      $('waitText').textContent = `${title} ${fmtDur(s)}`; $('r_next').textContent = `next in ${fmtDur(s)}`;
+      await tick(Math.min(1000, leftMs));
+    }
+    $('waitBox').classList.add('hidden');
+  }
 
   for (let k = 0; k < queue.length; k++){
     if (stopFlag) break;
     const row = rows[queue[k]], to = String(row[emailCol]).trim();
     $('r_next').textContent = 'sending…'; $('runState').textContent = `Sending ${k+1} of ${queue.length}`;
-    const r = await sendOne(false, to, render(subjectTpl, row).out, render(bodyTpl, row).out, att);
+    const subj = render(subjectTpl, row).out, body = render(bodyTpl, row).out;
+    let r, tries = 0;
+    while (true){
+      r = await sendOne(false, to, subj, body, att);
+      if (r.ok || !r.retry || tries >= 4 || stopFlag) break;
+      const w = [5, 15, 30, 60][tries++];
+      addLog('warn', `Gmail asked to slow down, retrying in ${w}s`);
+      await pause(w, 'Gmail asked to slow down. Retrying in', `Retry ${tries} of 4 · ${to}`);
+    }
     if (r.ok){ sent++; sentMap[to.toLowerCase()] = stamp(); saveHist(); addLog('ok', `Sent to ${to}`) }
-    else { failed++; addLog('bad', `Failed ${to}: ${r.error}`); if (r.fatal){ fatal = r.error; break } }
+    else { failed++; addLog('bad', `Failed ${to}: ${r.error}`); if (r.fatal) fatal = r.error }
+    DB.add('records', {time: new Date().toISOString(), to, name: pick(row, /^(full ?|first ?)?name$/i), business: pick(row, /business|company|shop|store|brand/i),
+                       subject: subj, status: r.ok ? 'sent' : 'failed', error: r.ok ? '' : r.error, run: run.id, from: sender.from});
+    run.sent = sent; run.failed = failed; DB.put('runs', run);
     progress(k+1, queue.length, sent, failed);
+    if (fatal) break;
     if (k < queue.length - 1 && !stopFlag){
       const wait = Math.floor(minD + Math.random() * (maxD - minD + 1));
       if (wait > 0){
-        const until = Date.now() + wait * 1000, nextTo = String(rows[queue[k+1]][emailCol]).trim();
-        skipFlag = false; $('waitBox').classList.remove('hidden'); $('runState').textContent = 'Waiting';
-        $('waitSub').textContent = `${k+1} of ${queue.length} done · next: ${nextTo}`;
         addLog('info', `Waiting ${fmtDur(wait)} before the next email`);
-        while (!stopFlag && !skipFlag){
-          const leftMs = until - Date.now(); if (leftMs <= 0) break;
-          const s = Math.ceil(leftMs / 1000);
-          $('waitText').textContent = `Next email in ${fmtDur(s)}`; $('r_next').textContent = `next in ${fmtDur(s)}`;
-          await tick(Math.min(1000, leftMs));
-        }
-        $('waitBox').classList.add('hidden');
+        await pause(wait, 'Next email in', `${k+1} of ${queue.length} done · next: ${String(rows[queue[k+1]][emailCol]).trim()}`);
       }
     }
   }
   $('r_next').textContent = ''; $('waitBox').classList.add('hidden');
+  run.finished = new Date().toISOString(); run.status = fatal ? 'error' : (stopFlag ? 'stopped' : 'finished'); run.error = fatal || ''; DB.put('runs', run);
   keepAwake(false); setRunning(false);
   if (fatal){ $('runState').textContent = 'Error'; note('sendNote','bad', 'Stopped: ' + esc(fatal)) }
   else if (stopFlag){ $('runState').textContent = 'Stopped'; note('sendNote','warn', `Stopped. ${sent} sent, ${failed} failed. Start again any time; people already emailed are skipped.`) }
