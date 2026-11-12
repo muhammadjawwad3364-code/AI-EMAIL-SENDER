@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bulk Mailer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--bg:#f4f5f7;--card:#ffffff;--text:#171a1f;--muted:#667085;--line:#e4e7ec;--soft:#f9fafb;
+--accent:#4338ca;--accent-h:#3730a3;--accent-soft:#eef2ff;--ok:#047857;--ok-soft:#ecfdf5;--bad:#b42318;--bad-soft:#fef3f2;--warn:#b54708;--warn-soft:#fffaeb;
+--r:14px;--shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06)}
+@media (prefers-color-scheme:dark){:root{--bg:#0d0f13;--card:#161920;--text:#e9ebef;--muted:#98a2b3;--line:#262b34;--soft:#1b1f27;
+--accent:#818cf8;--accent-h:#a5b4fc;--accent-soft:#1f1d47;--ok:#34d399;--ok-soft:#0d2a21;--bad:#f97066;--bad-soft:#2d1514;--warn:#fdb022;--warn-soft:#2b2010;--shadow:none}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.bar{max-width:1320px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:12px}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--accent);display:grid;place-items:center;color:#fff;flex:none}
+.bar h1{font-size:17px;margin:0;font-weight:700}
+.bar .sub{color:var(--muted);font-size:13px}
+.pill{margin-left:auto;font-size:12px;font-weight:600;padding:5px 11px;border-radius:99px;background:var(--soft);border:1px solid var(--line);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50%}
+.pill.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.pill.run{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+main{max-width:1320px;margin:0 auto;padding:20px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:980px){main{grid-template-columns:1fr;padding:16px}}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+.side{position:sticky;top:80px}
+@media (max-width:980px){.side{position:static}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.hd{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.num{width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:12px;display:grid;place-items:center;flex:none}
+.hd h2{font-size:15px;margin:0;font-weight:600}
+.hd .meta{margin-left:auto;color:var(--muted);font-size:12px;text-align:right}
+.bd{padding:18px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.grid,.grid3{grid-template-columns:1fr}}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
+input,select,textarea{width:100%;font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 11px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{resize:vertical;min-height:260px;line-height:1.6}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;border-radius:9px;padding:9px 15px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+.btn.primary:hover{background:var(--accent-h)}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.big{padding:12px 18px;font-size:15px;flex:1;justify-content:center}
+.link{font:inherit;font-size:12px;background:none;border:0;color:var(--muted);cursor:pointer;text-decoration:underline;padding:0}
+.hint{color:var(--muted);font-size:12px;margin-top:6px}
+.hint code{background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:0 4px;font-size:11px}
+.note{border-radius:10px;padding:10px 12px;font-size:13px;margin-top:12px}
+.note.ok{background:var(--ok-soft);color:var(--ok)}.note.bad{background:var(--bad-soft);color:var(--bad)}.note.warn{background:var(--warn-soft);color:var(--warn)}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:30px 18px;text-align:center;cursor:pointer;transition:.15s;background:var(--soft)}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop b{display:block;font-size:15px;margin:8px 0 2px}
+.drop svg{color:var(--accent)}
+.file{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
+.file .name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:14px 0}
+@media (max-width:700px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.stat{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.stat .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .l{font-size:11px;color:var(--muted);font-weight:500}
+.stat.good .v{color:var(--ok)}.stat.badv .v{color:var(--bad)}.stat.acc{background:var(--accent-soft);border-color:transparent}.stat.acc .v{color:var(--accent)}
+.tbl{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:340px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+th{position:sticky;top:0;background:var(--soft);font-weight:600;font-size:12px;color:var(--muted)}
+th.em{color:var(--accent)}
+tr.inv td{background:var(--bad-soft)}tr.dup td,tr.done td{color:var(--muted)}
+.tag{font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px}
+.tag.inv{background:var(--bad-soft);color:var(--bad)}.tag.dup{background:var(--warn-soft);color:var(--warn)}.tag.done{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.pager{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:10px;color:var(--muted);font-size:12px}
+.pager .btn{padding:5px 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.chip{font:inherit;font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;border:1px solid var(--line);background:var(--soft);color:var(--accent);cursor:pointer}
+.chip:hover{background:var(--accent-soft);border-color:var(--accent)}
+.att{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;margin-top:8px;font-size:13px}
+.att .x{margin-left:auto;cursor:pointer;color:var(--muted);border:0;background:none;font-size:16px}
+.mail{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.mail .h{background:var(--soft);padding:12px 14px;border-bottom:1px solid var(--line);font-size:13px}
+.mail .h div{display:flex;gap:8px;margin:2px 0;min-width:0}.mail .h span:first-child{color:var(--muted);width:56px;flex:none}
+.mail .h span:last-child{overflow:hidden;text-overflow:ellipsis}
+.mail .s{font-weight:700;font-size:15px}
+.mail .b{padding:14px;white-space:pre-wrap;word-wrap:break-word;max-height:380px;overflow:auto;line-height:1.6}
+.miss{background:var(--warn-soft);color:var(--warn);border-radius:4px;padding:0 3px}
+.prog{height:10px;background:var(--soft);border:1px solid var(--line);border-radius:99px;overflow:hidden;margin:14px 0 8px}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
+.log{margin-top:12px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.log div{padding:5px 10px;border-bottom:1px solid var(--line);display:flex;gap:8px}
+.log div:last-child{border-bottom:0}
+.log .t{color:var(--muted);flex:none}.log .ok{color:var(--ok)}.log .bad{color:var(--bad)}.log .warn{color:var(--warn)}
+.empty{color:var(--muted);text-align:center;padding:14px}
+details summary{cursor:pointer;list-style:none}
+details summary::-webkit-details-marker{display:none}
+.gbtn{font:inherit;font-weight:600;font-size:15px;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+.gbtn:hover{background:var(--soft)}.gbtn:disabled{opacity:.5;cursor:not-allowed}
+.who{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.who img{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);flex:none;object-fit:cover}
+.who img[src=""]{visibility:hidden}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></div>
+  <div><h1>Bulk Mailer</h1><div class="sub">Personalized emails from your spreadsheet</div></div>
+  <span class="pill" id="pill">Not connected</span>
+</div></header>
+
+<main>
+<div class="col">
+
+  <!-- 1. Connect -->
+  <section class="card">
+    <details id="accBox" open>
+      <summary class="hd"><span class="num">1</span><h2>Connect your email</h2><span class="meta" id="accMeta">Not connected</span></summary>
+      <div class="bd">
+        <!-- signed out -->
+        <div id="signedOut">
+          <button class="gbtn" id="gSignIn">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+            Continue with Google
+          </button>
+          <div class="hint" id="gHint">Sends through your own Gmail or Google Workspace account. No App password needed.</div>
+          <details id="smtpBox" style="margin-top:16px">
+            <summary class="link">Use an App password instead</summary>
+            <div style="margin-top:10px">
+              <label>Access key</label>
+              <div class="row" style="flex-wrap:nowrap">
+                <input id="accKey" type="password" placeholder="The ACCESS_KEY you set in Vercel" autocomplete="off">
+                <button class="btn" id="connect" style="flex:none">Connect</button>
+              </div>
+              <div class="hint">Uses <code>SMTP_USER</code>, <code>SMTP_PASS</code> and <code>ACCESS_KEY</code> from Vercel's Environment Variables.</div>
+            </div>
+          </details>
+        </div>
+        <!-- signed in -->
+        <div id="signedIn" class="hidden">
+          <div class="who">
+            <img id="whoPic" alt="" referrerpolicy="no-referrer">
+            <div style="min-width:0"><div style="font-weight:600" id="whoName"></div><div class="hint" style="margin:0" id="whoMail"></div></div>
+            <button class="btn" id="signOut" style="margin-left:auto;padding:6px 12px">Sign out</button>
+          </div>
+          <div style="margin-top:14px"><label>Sender name (shown to recipients)</label><input id="fromName" placeholder="Javlopers"></div>
+        </div>
+        <div id="accNote"></div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 2. Recipients -->
+  <section class="card">
+    <div class="hd"><span class="num">2</span><h2>Recipients</h2><span class="meta">CSV, Excel (.xlsx / .xls)</span></div>
+    <div class="bd">
+      <input type="file" id="listFile" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.ods" class="hidden">
+      <div class="drop" id="drop">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>
+        <b>Drop your CSV or Excel file here</b>
+        <span class="hint">or click to browse &middot; handles lists with tens of thousands of rows</span>
+      </div>
+      <div id="listArea" class="hidden">
+        <div class="file">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          <span class="name" id="fileName"></span>
+          <button class="btn" id="changeFile" style="margin-left:auto;padding:5px 10px">Replace</button>
+        </div>
+        <div class="grid">
+          <div id="sheetWrap"><label>Sheet</label><select id="sheetSel"></select></div>
+          <div><label>Email column</label><select id="emailCol"></select></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="v" id="s_rows">0</div><div class="l">Rows</div></div>
+          <div class="stat good"><div class="v" id="s_valid">0</div><div class="l">Valid emails</div></div>
+          <div class="stat badv"><div class="v" id="s_inv">0</div><div class="l">Invalid / empty</div></div>
+          <div class="stat"><div class="v" id="s_dup">0</div><div class="l">Duplicates</div></div>
+          <div class="stat"><div class="v" id="s_done">0</div><div class="l">Emailed before</div></div>
+          <div class="stat acc"><div class="v" id="s_send">0</div><div class="l">Will send</div></div>
+        </div>
+        <div class="tbl"><table id="tbl"></table></div>
+        <div class="pager"><span id="pageInfo"></span><button class="btn" id="prevPage">&lsaquo;</button><button class="btn" id="nextPage">&rsaquo;</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Message -->
+  <section class="card">
+    <div class="hd"><span class="num">3</span><h2>Message</h2></div>
+    <div class="bd">
+      <label>Subject</label>
+      <input id="subject" placeholder="Quick question about {business}">
+      <div style="margin-top:14px"><label>Insert a field from your sheet</label></div>
+      <div class="chips" id="chips"><span class="hint" style="margin:0">Load a recipient file to see its columns.</span></div>
+      <label>Body</label>
+      <textarea id="body" placeholder="Hi {name|there},&#10;&#10;I came across {business} and..."></textarea>
+      <div class="hint">Use <b>{column}</b> to fill in each person's details. Add a fallback with <b>{name|there}</b> for when a cell is empty.</div>
+
+      <div style="margin-top:18px"><label>Attachments (optional)</label></div>
+      <input type="file" id="attFile" multiple class="hidden">
+      <button class="btn" id="addAtt"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.4 11-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>Attach files</button>
+      <div id="attList"></div>
+      <div class="hint">Up to 3 MB in total. Attachments make cold emails more likely to land in spam; a link in the text is usually safer.</div>
+    </div>
+  </section>
+
+  <!-- 4. Pace -->
+  <section class="card">
+    <div class="hd"><span class="num">4</span><h2>Sending pace</h2><span class="meta" id="eta"></span></div>
+    <div class="bd">
+      <div class="grid3">
+        <div><label>Min gap (seconds)</label><input id="minD" type="number" min="0" value="90"></div>
+        <div><label>Max gap (seconds)</label><input id="maxD" type="number" min="0" value="240"></div>
+        <div><label>Daily limit (0 = none)</label><input id="limit" type="number" min="0" value="50"></div>
+      </div>
+      <div class="hint">A random gap between emails and a modest daily limit help keep you out of spam. Gmail accounts can send about 500 a day at most; Google Workspace about 2,000.</div>
+    </div>
+  </section>
+</div>
+
+<div class="col side">
+  <section class="card">
+    <div class="hd"><h2>Preview</h2>
+      <div class="row" style="margin-left:auto;gap:6px">
+        <span class="meta" id="pvInfo">No recipients</span>
+        <button class="btn" id="pvPrev" style="padding:4px 10px">&lsaquo;</button>
+        <button class="btn" id="pvNext" style="padding:4px 10px">&rsaquo;</button>
+      </div>
+    </div>
+    <div class="bd">
+      <div class="mail">
+        <div class="h">
+          <div><span>From</span><span id="pvFrom">&mdash;</span></div>
+          <div><span>To</span><span id="pvTo">&mdash;</span></div>
+          <div class="s" id="pvSub" style="margin-top:6px">(no subject)</div>
+        </div>
+        <div class="b" id="pvBody"><span class="hint">Your message will appear here.</span></div>
+      </div>
+      <div id="pvWarn"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="hd"><h2>Send</h2><span class="meta" id="runState">Idle</span></div>
+    <div class="bd">
+      <div class="row">
+        <button class="btn big primary" id="start"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>Start sending</button>
+        <button class="btn big danger hidden" id="stop">Stop</button>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="testSend" style="flex:1;justify-content:center">Send a test to myself</button></div>
+      <div id="sendNote"></div>
+      <div class="prog"><i id="progBar"></i></div>
+      <div class="row" style="justify-content:space-between;font-size:13px">
+        <span><b id="r_done">0</b> / <span id="r_total">0</span> processed</span>
+        <span style="color:var(--ok)"><b id="r_sent">0</b> sent</span>
+        <span style="color:var(--bad)"><b id="r_fail">0</b> failed</span>
+        <span class="hint" style="margin:0" id="r_next"></span>
+      </div>
+      <div class="log" id="log"><div class="empty">Activity will show here.</div></div>
+      <div class="hint">Keep this tab open while sending. Sent history is kept in this browser so nobody gets emailed twice.</div>
+      <div class="row" style="margin-top:8px;gap:14px">
+        <span class="hint" style="margin:0" id="histInfo"></span>
+        <button class="link" id="exportHist">Download sent history (CSV)</button>
+        <button class="link" id="clearHist">Clear history</button>
+      </div>
+    </div>
+  </section>
+</div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PH = /\{\s*([^{}|]+?)\s*(?:\|([^{}]*))?\}/g;
+const PAGE = 50, MAX_ATT = 3 * 1048576;
+let wb = null, rows = [], cols = [], emailCol = '', page = 0, pv = 0;
+let info = [], sendIdx = [], attachments = [], lastField = null;
+let sender = null, running = false, stopFlag = false, logs = [];
+let sentMap = {};
+
+function store(k, v){ try{ localStorage.setItem('bm_'+k, v) }catch(e){} }
+function recall(k){ try{ return localStorage.getItem('bm_'+k) }catch(e){ return null } }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) }
+function note(id, kind, msg){ $(id).innerHTML = msg ? `<div class="note ${kind}">${msg}</div>` : '' }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function today(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') }
+function stamp(){ const d = new Date(); return today()+' '+d.toTimeString().slice(0,8) }
+
+async function api(data){
+  try {
+    const r = await fetch('/api/send', {method:'POST', headers:{'Content-Type':'application/json','X-Access-Key':$('accKey').value}, body:JSON.stringify(data)});
+    const txt = await r.text();
+    try { return JSON.parse(txt) } catch(e){ return {ok:false, error: r.status === 413 ? 'Request too large (attachments over the limit).' : 'Server error ' + r.status, fatal: r.status === 404} }
+  } catch(e){ return {ok:false, error:'Network error: ' + e.message} }
+}
+
+/* ---------- sent history (this browser) ---------- */
+function loadHist(){ try{ sentMap = JSON.parse(recall('sent') || '{}') }catch(e){ sentMap = {} } renderHist() }
+function saveHist(){ store('sent', JSON.stringify(sentMap)); renderHist() }
+function sentToday(){ const t = today(); return Object.values(sentMap).filter(v => v.startsWith(t)).length }
+function renderHist(){ const n = Object.keys(sentMap).length; $('histInfo').textContent = `${n.toLocaleString()} emailed in total · ${sentToday()} today` }
+$('exportHist').onclick = () => {
+  const csv = 'email,sent_at\n' + Object.entries(sentMap).map(([e,t]) => `${e},${t}`).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = 'sent_history.csv'; a.click();
+};
+$('clearHist').onclick = () => {
+  if (running) return;
+  if (confirm('Clear the sent history on this browser? People already emailed could then be emailed again.')){ sentMap = {}; saveHist(); if (rows.length) analyze() }
+};
+
+/* ---------- connect ---------- */
+async function connect(){
+  if (!$('accKey').value) return note('accNote','bad','Enter your access key.');
+  note('accNote','warn','Connecting to your mail account…');
+  const r = await api({action:'verify'});
+  if (!r.ok){ sender = null; setPill(); return note('accNote','bad', esc(r.error) + (r.fatal && /not set/.test(r.error||'') ? ' Add it in Vercel › Settings › Environment Variables, then redeploy.' : '')) }
+  store('key', $('accKey').value);
+  sender = {mode:'smtp', from:r.from, from_name:r.from_name || '', name:'', picture:''};
+  note('accNote','ok','Connected. Ready to send.');
+  showSignedIn();
+}
+$('connect').onclick = connect;
+$('accKey').addEventListener('keydown', e => { if (e.key === 'Enter') connect() });
+function forget(k){ try{ localStorage.removeItem('bm_'+k) }catch(e){} }
+
+/* ---------- connect: Google ---------- */
+const G_SCOPE = 'openid email profile https://www.googleapis.com/auth/gmail.send';
+let gCfg = {client_id:'', smtp:false}, gTok = null, gExp = 0, codeClient = null;
+
+async function gApi(data){
+  try {
+    const r = await fetch('/api/google', {method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XmlHttpRequest'}, body:JSON.stringify(data)});
+    return await r.json();
+  } catch(e){ return {ok:false, error:'Network error: ' + e.message} }
+}
+function setTokens(r){ gTok = r.access_token; gExp = Date.now() + (r.expires_in || 3600) * 1000; if (r.refresh_token) store('g_refresh', r.refresh_token) }
+async function ensureToken(){
+  if (gTok && gExp - Date.now() > 120000) return true;
+  const rt = recall('g_refresh'); if (!rt) return false;
+  const r = await gApi({action:'refresh', refresh_token: rt});
+  if (r.ok){ setTokens(r); return true }
+  if (/invalid_grant|expired|revoked/i.test(r.error || '')) forget('g_refresh');
+  return false;
+}
+function waitForGis(){
+  return new Promise(res => { const t0 = Date.now(); (function chk(){
+    if (window.google && google.accounts && google.accounts.oauth2) res(true);
+    else if (Date.now() - t0 > 10000) res(false); else setTimeout(chk, 100) })() });
+}
+async function loadProfile(){
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {headers:{Authorization:'Bearer ' + gTok}});
+    if (!r.ok) return false;
+    const u = await r.json();
+    sender = {mode:'google', from:u.email, name:u.name || '', picture:u.picture || '', from_name:''};
+    showSignedIn(); return true;
+  } catch(e){ return false }
+}
+function showSignedIn(){
+  $('signedOut').classList.add('hidden'); $('signedIn').classList.remove('hidden');
+  $('whoPic').src = sender.picture || '';
+  $('whoName').textContent = sender.mode === 'google' ? (sender.name || sender.from) : 'Connected with App password';
+  $('whoMail').textContent = sender.from + (sender.mode === 'google' ? ' · signed in with Google' : '');
+  const saved = recall('fromName');
+  $('fromName').value = saved !== null && saved !== '' ? saved : (sender.from_name || sender.name || '');
+  $('accMeta').textContent = sender.from; $('accBox').open = true;
+  setPill(); renderPreview();
+}
+$('fromName').addEventListener('input', () => { store('fromName', $('fromName').value); renderPreview() });
+
+$('gSignIn').onclick = async () => {
+  if (!await waitForGis()) return note('accNote','bad','Could not load Google sign-in. Check your connection or ad blocker, then reload.');
+  if (!codeClient) codeClient = google.accounts.oauth2.initCodeClient({
+    client_id: gCfg.client_id, scope: G_SCOPE, ux_mode: 'popup', select_account: true, callback: onCode,
+    error_callback: e => note('accNote','bad', e && e.type === 'popup_closed' ? 'The Google window was closed before finishing.' : 'Google sign-in failed: ' + esc((e && (e.message || e.type)) || 'unknown error'))
+  });
+  codeClient.requestCode();
+};
+async function onCode(resp){
+  if (resp.error) return note('accNote','bad','Google sign-in failed: ' + esc(resp.error_description || resp.error));
+  if (!/gmail\.send/.test(resp.scope || '')) return note('accNote','bad','Please allow "Send email on your behalf" when Google asks, then try again.');
+  note('accNote','warn','Finishing sign-in…');
+  const r = await gApi({action:'exchange', code: resp.code});
+  if (!r.ok) return note('accNote','bad','Google sign-in failed: ' + esc(r.error));
+  setTokens(r);
+  if (!await loadProfile()) return note('accNote','bad','Signed in, but could not read your Google profile. Try again.');
+  note('accNote', recall('g_refresh') ? 'ok' : 'warn', recall('g_refresh') ? 'Signed in with Google. Ready to send.'
+    : 'Signed in. Google did not grant long-term access, so you may be asked to sign in again after about an hour.');
+}
+$('signOut').onclick = () => {
+  if (running) return;
+  if (sender && sender.mode === 'google' && gTok && window.google && google.accounts && google.accounts.oauth2){ try { google.accounts.oauth2.revoke(gTok, () => {}) } catch(e){} }
+  gTok = null; gExp = 0; forget('g_refresh'); forget('key'); sender = null; $('accKey').value = '';
+  $('signedIn').classList.add('hidden'); $('signedOut').classList.remove('hidden');
+  $('accMeta').textContent = 'Not connected'; $('accBox').open = true; note('accNote','','');
+  setPill(); renderPreview();
+};
+async function initConnect(){
+  try { gCfg = await (await fetch('/api/google')).json() } catch(e){}
+  if (!gCfg.client_id){
+    $('gSignIn').disabled = true;
+    $('gHint').innerHTML = 'To turn this on, add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> in Vercel (see README).';
+    $('smtpBox').open = true;
+  } else if (recall('g_refresh')){
+    note('accNote','warn','Signing you back in…');
+    if (await ensureToken() && await loadProfile()) return note('accNote','','');
+    note('accNote','','');
+  }
+  const savedKey = recall('key'); if (savedKey){ $('accKey').value = savedKey; $('smtpBox').open = true; connect() }
+}
+
+/* ---------- building and sending one email ---------- */
+function b64bytes(bytes){ let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s) }
+const b64u8 = str => b64bytes(new TextEncoder().encode(str));
+const wrap76 = s => s.replace(/(.{76})/g, '$1\r\n');
+const isAscii = s => /^[\x20-\x7e]*$/.test(s);
+const encWord = s => isAscii(s) ? s : '=?UTF-8?B?' + b64u8(s) + '?=';
+const b64url = s => btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function buildMime({fromName, from, to, subject, body, attachments}){
+  const nl = '\r\n', name = (fromName || '').replace(/["\r\n]/g, '');
+  const fromH = name ? (isAscii(name) ? `"${name}" <${from}>` : `${encWord(name)} <${from}>`) : from;
+  const head = `From: ${fromH}${nl}To: ${to}${nl}Subject: ${encWord(subject.replace(/[\r\n]+/g, ' '))}${nl}MIME-Version: 1.0${nl}`;
+  const text = `Content-Type: text/plain; charset="UTF-8"${nl}Content-Transfer-Encoding: base64${nl}${nl}${wrap76(b64u8(body.replace(/\r?\n/g, '\r\n')))}${nl}`;
+  if (!attachments || !attachments.length) return head + text;
+  const bd = 'bm_' + Math.random().toString(36).slice(2);
+  let m = head + `Content-Type: multipart/mixed; boundary="${bd}"${nl}${nl}--${bd}${nl}` + text;
+  attachments.forEach(a => {
+    const fn = encWord(a.name.replace(/["\r\n]/g, ''));
+    m += `--${bd}${nl}Content-Type: ${a.type}; name="${fn}"${nl}Content-Disposition: attachment; filename="${fn}"${nl}Content-Transfer-Encoding: base64${nl}${nl}${wrap76(a.data)}${nl}`;
+  });
+  return m + `--${bd}--${nl}`;
+}
+async function sendOne(test, to, subject, body, att){
+  const fromName = $('fromName').value.trim();
+  if (sender.mode === 'smtp') return api({action: test ? 'test' : 'send', to, subject, body, attachments: att, from_name: fromName});
+  if (!await ensureToken()) return {ok:false, fatal:true, error:'Your Google sign-in expired. Click "Sign out", then "Continue with Google", and press Start again. People already emailed are skipped.'};
+  const dest = test ? sender.from : to;
+  const raw = b64url(buildMime({fromName, from: sender.from, to: dest, subject: (test ? '[TEST] ' : '') + subject, body, attachments: att}));
+  try {
+    const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {method:'POST', headers:{Authorization:'Bearer ' + gTok, 'Content-Type':'application/json'}, body: JSON.stringify({raw})});
+    if (r.ok) return {ok:true, to: dest};
+    const j = await r.json().catch(() => ({}));
+    const msg = (j.error && j.error.message) || ('Gmail error ' + r.status);
+    if (r.status === 401){ gTok = null; return {ok:false, error: msg} }
+    if (r.status === 429) return {ok:false, fatal:true, error:'Gmail sending limit reached for now. Try again later. (' + msg + ')'};
+    return {ok:false, fatal: r.status === 403, error: msg};
+  } catch(e){ return {ok:false, error:'Network error: ' + e.message} }
+}
+function setPill(){
+  const p = $('pill');
+  if (running){ p.className='pill run'; p.textContent='Sending…' }
+  else if (sender){ p.className='pill ok'; p.textContent=sender.from }
+  else { p.className='pill'; p.textContent='Not connected' }
+}
+
+/* ---------- recipients file ---------- */
+$('drop').onclick = () => $('listFile').click();
+$('changeFile').onclick = () => { if (!running) $('listFile').click() };
+['dragover','dragenter'].forEach(e => $('drop').addEventListener(e, ev => { ev.preventDefault(); $('drop').classList.add('over') }));
+['dragleave','drop'].forEach(e => $('drop').addEventListener(e, ev => { ev.preventDefault(); $('drop').classList.remove('over') }));
+$('drop').addEventListener('drop', ev => { if (ev.dataTransfer.files[0]) readList(ev.dataTransfer.files[0]) });
+$('listFile').onchange = e => { if (e.target.files[0]) readList(e.target.files[0]); e.target.value = '' };
+
+function parseCSV(text){
+  const first = text.split('\n')[0];
+  const delim = (first.match(/\t/g)||[]).length > (first.match(/,/g)||[]).length ? '\t' : ((first.match(/;/g)||[]).length > (first.match(/,/g)||[]).length ? ';' : ',');
+  const out = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if (q){ if (ch === '"'){ if (text[i+1] === '"'){ f += '"'; i++ } else q = false } else f += ch }
+    else if (ch === '"') q = true;
+    else if (ch === delim){ row.push(f); f = '' }
+    else if (ch === '\n'){ row.push(f); out.push(row); row = []; f = '' }
+    else if (ch !== '\r') f += ch;
+  }
+  if (f || row.length){ row.push(f); out.push(row) }
+  return out;
+}
+function tableToObjects(aoa){
+  aoa = aoa.filter(r => r.some(c => String(c).trim() !== ''));
+  if (!aoa.length) return {cols:[], rows:[]};
+  const seen = {};
+  const head = aoa[0].map((h,i) => { let n = String(h).trim() || ('Column ' + (i+1)); if (seen[n]) n += ' ' + (++seen[n]); else seen[n] = 1; return n });
+  const out = aoa.slice(1).map(r => { const o = {}; head.forEach((h,i) => o[h] = r[i] === undefined || r[i] === null ? '' : String(r[i]).trim()); return o });
+  return {cols: head, rows: out};
+}
+function readList(file){
+  const isText = /\.(csv|tsv|txt)$/i.test(file.name);
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      if (isText){
+        wb = null; loadTable(tableToObjects(parseCSV(fr.result.replace(/^﻿/, ''))));
+        $('sheetWrap').classList.add('hidden');
+      } else {
+        if (typeof XLSX === 'undefined') throw new Error('The Excel reader could not load. Check your internet connection and reload, or save the sheet as CSV.');
+        wb = XLSX.read(new Uint8Array(fr.result), {type:'array'});
+        $('sheetSel').innerHTML = wb.SheetNames.map(n => `<option>${esc(n)}</option>`).join('');
+        $('sheetWrap').classList.toggle('hidden', wb.SheetNames.length < 2);
+        loadSheet(wb.SheetNames[0]);
+      }
+      $('fileName').textContent = file.name + ' · ' + (file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(file.size/1024))+' KB');
+      $('drop').classList.add('hidden'); $('listArea').classList.remove('hidden');
+    } catch(err){ alert('Could not read this file: ' + err.message) }
+  };
+  isText ? fr.readAsText(file) : fr.readAsArrayBuffer(file);
+}
+$('sheetSel').onchange = () => loadSheet($('sheetSel').value);
+function loadSheet(name){ loadTable(tableToObjects(XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, defval:'', raw:false, blankrows:false}))) }
+function loadTable(t){
+  cols = t.cols; rows = t.rows; page = 0; pv = 0;
+  emailCol = cols.find(c => /e-?mail/i.test(c)) || cols.find(c => rows.slice(0,50).some(r => EMAIL.test(r[c]))) || cols[0] || '';
+  $('emailCol').innerHTML = cols.map(c => `<option ${c===emailCol?'selected':''}>${esc(c)}</option>`).join('');
+  $('chips').innerHTML = cols.map(c => `<button class="chip" data-c="${esc(c)}">{${esc(c)}}</button>`).join('') || '<span class="hint">No columns found.</span>';
+  analyze();
+}
+$('emailCol').onchange = () => { emailCol = $('emailCol').value; analyze() };
+
+function analyze(){
+  const seen = new Set(); info = new Array(rows.length); sendIdx = [];
+  let valid = 0, inv = 0, dup = 0, done = 0;
+  rows.forEach((r, i) => {
+    const e = String(r[emailCol] || '').trim(), el = e.toLowerCase();
+    if (!EMAIL.test(e)){ info[i] = 'inv'; inv++; return }
+    valid++;
+    if (seen.has(el)){ info[i] = 'dup'; dup++; return }
+    seen.add(el);
+    if (sentMap[el]){ info[i] = 'done'; done++; return }
+    info[i] = ''; sendIdx.push(i);
+  });
+  $('s_rows').textContent = rows.length.toLocaleString(); $('s_valid').textContent = valid.toLocaleString();
+  $('s_inv').textContent = inv.toLocaleString(); $('s_dup').textContent = dup.toLocaleString();
+  $('s_done').textContent = done.toLocaleString(); $('s_send').textContent = sendIdx.length.toLocaleString();
+  pv = Math.min(pv, Math.max(0, sendIdx.length-1));
+  renderTable(); renderPreview(); renderEta();
+}
+function renderTable(){
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE)); page = Math.min(page, pages-1);
+  const slice = rows.slice(page*PAGE, page*PAGE+PAGE);
+  const tags = {inv:'<span class="tag inv">Invalid</span>', dup:'<span class="tag dup">Duplicate</span>', done:'<span class="tag done">Emailed</span>'};
+  $('tbl').innerHTML = '<thead><tr><th>#</th><th></th>' + cols.map(c => `<th class="${c===emailCol?'em':''}">${esc(c)}</th>`).join('') + '</tr></thead><tbody>' +
+    slice.map((r, j) => { const i = page*PAGE + j, s = info[i]; return `<tr class="${s}"><td>${i+1}</td><td>${tags[s]||''}</td>` + cols.map(c => `<td title="${esc(r[c])}">${esc(r[c])}</td>`).join('') + '</tr>' }).join('') + '</tbody>';
+  $('pageInfo').textContent = rows.length ? `Rows ${(page*PAGE+1).toLocaleString()}–${Math.min(rows.length,(page+1)*PAGE).toLocaleString()} of ${rows.length.toLocaleString()}` : 'No rows';
+  $('prevPage').disabled = page === 0; $('nextPage').disabled = page >= pages-1;
+}
+$('prevPage').onclick = () => { page--; renderTable() };
+$('nextPage').onclick = () => { page++; renderTable() };
+
+/* ---------- message ---------- */
+['subject','body'].forEach(id => { $(id).addEventListener('focus', () => lastField = $(id)); $(id).addEventListener('input', () => { store(id, $(id).value); renderPreview() }) });
+$('chips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  const f = lastField || $('body'), tok = '{' + c.dataset.c + '}';
+  const s = f.selectionStart ?? f.value.length, en = f.selectionEnd ?? f.value.length;
+  f.value = f.value.slice(0, s) + tok + f.value.slice(en); f.focus(); f.selectionStart = f.selectionEnd = s + tok.length;
+  store(f.id, f.value); renderPreview();
+});
+function render(tpl, row, mark){
+  const low = {}; Object.keys(row||{}).forEach(k => low[k.trim().toLowerCase()] = String(row[k]??'').trim());
+  const missing = [];
+  const out = (mark ? esc(tpl) : tpl).replace(PH, (m, key, fb) => {
+    const k = key.trim().toLowerCase(), v = low[k] || '';
+    if (v) return mark ? esc(v) : v;
+    if (fb !== undefined) return fb;
+    missing.push(key);
+    if (!(k in low)) return mark ? `<span class="miss">${m}</span>` : m;
+    return mark ? `<span class="miss">(empty ${esc(key)})</span>` : '';
+  });
+  return {out, missing};
+}
+function renderPreview(){
+  const row = sendIdx.length ? rows[sendIdx[pv]] : null;
+  $('pvInfo').textContent = sendIdx.length ? `${(pv+1).toLocaleString()} of ${sendIdx.length.toLocaleString()}` : 'No recipients';
+  const fn = $('fromName').value.trim();
+  $('pvFrom').textContent = sender ? (fn ? `${fn} <${sender.from}>` : sender.from) : '—';
+  $('pvTo').textContent = row ? row[emailCol] : '—';
+  const s = render($('subject').value, row || {}, true), b = render($('body').value, row || {}, true);
+  $('pvSub').innerHTML = s.out || '(no subject)';
+  $('pvBody').innerHTML = (b.out || '<span class="hint">Your message will appear here.</span>') +
+    (attachments.length ? '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:8px" class="hint">📎 ' + attachments.map(a => esc(a.name)).join(', ') + '</div>' : '');
+  const miss = [...new Set([...s.missing, ...b.missing])];
+  note('pvWarn', 'warn', row && miss.length ? 'This email has blank or unknown fields: ' + miss.map(m => '{'+esc(m)+'}').join(', ') + '. Add a fallback like {name|there}.' : '');
+}
+$('pvPrev').onclick = () => { if (pv > 0){ pv--; renderPreview() } };
+$('pvNext').onclick = () => { if (pv < sendIdx.length-1){ pv++; renderPreview() } };
+
+/* ---------- attachments ---------- */
+$('addAtt').onclick = () => $('attFile').click();
+$('attFile').onchange = e => {
+  [...e.target.files].forEach(f => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      if (attachments.reduce((a,x) => a + x.size, 0) + f.size > MAX_ATT) return alert('Attachments are limited to 3 MB in total on Vercel.');
+      attachments.push({name:f.name, type:f.type || 'application/octet-stream', size:f.size, data:fr.result.split(',')[1]});
+      renderAtt();
+    };
+    fr.readAsDataURL(f);
+  });
+  e.target.value = '';
+};
+function renderAtt(){
+  $('attList').innerHTML = attachments.map((a,i) => `<div class="att">📎 <span>${esc(a.name)}</span><span class="hint" style="margin:0">${a.size>1048576?(a.size/1048576).toFixed(1)+' MB':Math.max(1,Math.round(a.size/1024))+' KB'}</span><button class="x" data-i="${i}">&times;</button></div>`).join('');
+  renderPreview();
+}
+$('attList').addEventListener('click', e => { if (e.target.dataset.i !== undefined && !running){ attachments.splice(+e.target.dataset.i, 1); renderAtt() } });
+const attPayload = () => attachments.map(a => ({name:a.name, type:a.type, data:a.data}));
+
+/* ---------- pace ---------- */
+['minD','maxD','limit'].forEach(id => { const v = recall(id); if (v !== null) $(id).value = v; $(id).addEventListener('input', () => { store(id, $(id).value); renderEta() }) });
+function fmtDur(s){ if (s < 60) return Math.round(s)+'s'; const h = Math.floor(s/3600), m = Math.round((s%3600)/60); return h ? `${h}h ${m}m` : `${m} min` }
+function renderEta(){
+  const n = sendIdx.length, lim = +$('limit').value || 0, left = lim ? Math.max(0, lim - sentToday()) : n, now = Math.min(n, left);
+  const avg = ((+$('minD').value||0) + (+$('maxD').value||0)) / 2;
+  $('eta').textContent = n ? `${now.toLocaleString()} today · about ${fmtDur(Math.max(0,now-1)*avg)}` + (lim && n > now ? ` · ${(n-now).toLocaleString()} left for later` : '') : '';
+}
+
+/* ---------- send ---------- */
+function addLog(k, m){ logs.unshift({t:new Date().toTimeString().slice(0,8), k, m}); logs = logs.slice(0, 300);
+  $('log').innerHTML = logs.map(l => `<div><span class="t">${l.t}</span><span class="${l.k}">${esc(l.m)}</span></div>`).join('') }
+function setRunning(v){
+  running = v; setPill();
+  $('start').classList.toggle('hidden', v); $('stop').classList.toggle('hidden', !v);
+  $('testSend').disabled = v; $('runState').textContent = v ? 'Sending' : $('runState').textContent;
+}
+function progress(done, total, sent, failed){
+  $('r_done').textContent = done.toLocaleString(); $('r_total').textContent = total.toLocaleString();
+  $('r_sent').textContent = sent.toLocaleString(); $('r_fail').textContent = failed.toLocaleString();
+  $('progBar').style.width = total ? (100*done/total) + '%' : '0';
+}
+function checkReady(){
+  if (!sender) return 'Connect first (step 1).';
+  if (!sendIdx.length) return 'Load a recipient list with at least one new, valid email (step 2).';
+  if (!$('subject').value.trim() || !$('body').value.trim()) return 'Write a subject and message (step 3).';
+  return '';
+}
+$('testSend').onclick = async () => {
+  if (!sender) return note('sendNote','bad','Connect first (step 1).');
+  note('sendNote','warn','Sending test…');
+  const row = sendIdx.length ? rows[sendIdx[pv]] : {};
+  const r = await sendOne(true, null, render($('subject').value, row).out, render($('body').value, row).out, attPayload());
+  note('sendNote', r.ok ? 'ok' : 'bad', r.ok ? `Test sent to ${esc(r.to)}, filled with the row shown in the preview.` : 'Test failed: ' + esc(r.error));
+};
+$('stop').onclick = () => { stopFlag = true; $('runState').textContent = 'Stopping…'; addLog('warn','Stopping…') };
+window.addEventListener('beforeunload', e => { if (running){ e.preventDefault(); e.returnValue = '' } });
+
+$('start').onclick = async () => {
+  const err = checkReady(); if (err) return note('sendNote','bad',err);
+  const lim = +$('limit').value || 0, left = lim ? Math.max(0, lim - sentToday()) : Infinity;
+  if (left === 0) return note('sendNote','warn',`Daily limit of ${lim} reached. Come back tomorrow, or raise the limit.`);
+  const queue = sendIdx.slice(0, left === Infinity ? undefined : left);
+  const subjectTpl = $('subject').value, bodyTpl = $('body').value, att = attPayload();
+  const minD = Math.max(0, +$('minD').value || 0), maxD = Math.max(minD, +$('maxD').value || 0);
+  note('sendNote','',''); stopFlag = false; setRunning(true);
+  let sent = 0, failed = 0, fatal = '';
+  addLog('info', `Starting: ${queue.length} to send` + (queue.length < sendIdx.length ? ` (${sendIdx.length - queue.length} left for later, daily limit)` : ''));
+  progress(0, queue.length, 0, 0);
+
+  for (let k = 0; k < queue.length; k++){
+    if (stopFlag) break;
+    const row = rows[queue[k]], to = String(row[emailCol]).trim();
+    $('r_next').textContent = 'sending…';
+    const r = await sendOne(false, to, render(subjectTpl, row).out, render(bodyTpl, row).out, att);
+    if (r.ok){ sent++; sentMap[to.toLowerCase()] = stamp(); saveHist(); addLog('ok', `Sent to ${to}`) }
+    else { failed++; addLog('bad', `Failed ${to}: ${r.error}`); if (r.fatal){ fatal = r.error; break } }
+    progress(k+1, queue.length, sent, failed);
+    if (k < queue.length - 1 && !stopFlag){
+      let wait = Math.floor(minD + Math.random() * (maxD - minD + 1));
+      while (wait > 0 && !stopFlag){ $('r_next').textContent = `next in ${fmtDur(wait)}`; await sleep(1000); wait-- }
+    }
+  }
+  $('r_next').textContent = '';
+  setRunning(false);
+  if (fatal){ $('runState').textContent = 'Error'; note('sendNote','bad', 'Stopped: ' + esc(fatal)) }
+  else if (stopFlag){ $('runState').textContent = 'Stopped'; note('sendNote','warn', `Stopped. ${sent} sent, ${failed} failed. Start again any time; people already emailed are skipped.`) }
+  else { $('runState').textContent = 'Finished'; note('sendNote','ok', `Finished: ${sent} sent, ${failed} failed.`) }
+  addLog('info', `Done: ${sent} sent, ${failed} failed.`);
+  stopFlag = false; analyze();
+};
+
+/* ---------- init ---------- */
+['subject','body'].forEach(id => { const v = recall(id); if (v !== null) $(id).value = v });
+if (!$('subject').value) $('subject').value = 'Quick question about {business|your business}';
+if (!$('body').value) $('body').value = "Hi {name|there},\n\nI came across {business|your business} online and really liked {detail|what you do}.\n\nI couldn't find a website for you, so I wanted to ask: is that something you've thought about? A simple site can help new customers find you on Google and contact you in one tap on WhatsApp.\n\nI build websites for small businesses here in Karachi. If you're interested, I'm happy to share a few ideas, no obligation.\n\nThanks,\nJavlopers\n\nP.S. If this isn't relevant, just reply \"no\" and I won't email again.";
+loadHist(); renderPreview(); renderEta();
+initConnect();
+</script>
+</body>
+</html>
