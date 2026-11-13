@@ -1,4 +1,4 @@
-# Bulk Mailer (Vercel)
+# Efficient AI (Vercel)
 
 Send personalized emails to a CSV or Excel list from your own website on Vercel. Sign in with **Continue with Google**, or use a Gmail App password.
 
@@ -23,10 +23,10 @@ No packages or build step needed.
 
 In **console.cloud.google.com**, signed in as the Google account you'll send from:
 
-1. **Create a project** from the project picker at the top, e.g. "Bulk Mailer".
+1. **Create a project** from the project picker at the top, e.g. "Efficient AI".
 2. **Enable the Gmail API**: APIs & Services > Library > search "Gmail API" > Enable.
 3. **Set up the sign-in screen** (Google Auth Platform, or "OAuth consent screen"):
-   - App name: Bulk Mailer. Support email: yours. Audience: **External**.
+   - App name: Efficient AI. Support email: yours. Audience: **External**.
    - Under **Audience > Test users**, add your Gmail address. Only listed test users can sign in.
    - Under **Data Access**, add the scope `https://www.googleapis.com/auth/gmail.send`.
 4. **Create the login keys**: Clients (or Credentials) > Create client > **Web application**.
@@ -71,3 +71,6 @@ If you'd rather not use Google sign-in, add these in Vercel instead and use **"U
 **Keep the tab open while sending.** If you close it, reopen the site, load the list and press Start, and already-emailed people are skipped. Sent history is stored in your browser; use **Download sent history** to keep a copy.
 
 Gmail allows about 500 emails a day, Google Workspace about 2,000. For cold outreach, start with 20 to 50 a day.
+
+## Spam & delivery check
+Records page > "Spam & delivery check". Add 2-3 of your own Gmail addresses as seed inboxes; during a run each seed gets a copy at the start and every 25 emails, and its real Spam/Inbox label is read via the Gmail API (gmail.readonly scope). Bounces are read from Mailer-Daemon notices in the sender mailbox. Sign out and in once to grant the extra "read email" permission.

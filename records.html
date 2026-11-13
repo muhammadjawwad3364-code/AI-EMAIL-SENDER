@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bulk Mailer Records</title>
+<title>Efficient AI Records</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -81,6 +81,7 @@ tr.click{cursor:pointer}
 .tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;font-family:var(--mono);letter-spacing:.02em}
 .tag.sent,.tag.finished{background:var(--accent-soft);color:var(--accent)}
 .tag.failed,.tag.error{background:var(--bad-soft);color:var(--bad)}
+.tag.seed{background:var(--warn-soft);color:var(--warn)}
 .tag.test{background:var(--info-soft);color:var(--info)}
 .tag.stopped{background:var(--warn-soft);color:var(--warn)}
 .tag.running{background:var(--info-soft);color:var(--info)}
@@ -93,12 +94,23 @@ tr.click{cursor:pointer}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 10px;border-radius:99px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(5,251,6,.3)}
 .chip button{background:none;border:0;color:inherit;cursor:pointer;font-size:14px;padding:0;line-height:1}
 .hidden{display:none!important}
+
+.dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.dl .kpi .v{font-size:24px}
+.kpi.spam .v{color:var(--bad)}
+.kpi.good .v{color:var(--accent)}
+.note{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.55}
+.note b{color:var(--text)}
+.seedrow{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--soft);font-size:13px}
+.seedrow button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px}
+.seeds{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.warnbox{margin-top:12px;padding:10px 12px;border:1px solid rgba(255,197,61,.3);background:var(--warn-soft);color:var(--warn);border-radius:9px;font-size:12.5px}
 </style>
 </head>
 <body>
 <header><div class="bar">
   <div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></div>
-  <div><h1>Bulk Mailer</h1><div class="sub">Sending records</div></div>
+  <div><h1>Efficient AI</h1><div class="sub">Sending records</div></div>
   <nav class="nav"><a href="/">Send</a><a href="/records.html" class="on">Records</a></nav>
 </div></header>
 
@@ -110,6 +122,28 @@ tr.click{cursor:pointer}
     <div class="kpi bad"><div class="l">Failed</div><div class="v" id="k_fail">0</div><div class="s">all time</div></div>
     <div class="kpi"><div class="l">Unique recipients</div><div class="v" id="k_uniq">0</div><div class="s">different addresses</div></div>
     <div class="kpi"><div class="l">Sending runs</div><div class="v" id="k_runs">0</div><div class="s" id="k_last">&nbsp;</div></div>
+  </section>
+
+  <section class="card" id="dlvCard">
+    <div class="hd"><h2>Spam &amp; delivery check</h2><span class="meta" id="dlvMeta">Seed inboxes + bounce scan</span></div>
+    <div class="bd">
+      <div class="dl">
+        <div class="kpi spam"><div class="l">Landed in spam</div><div class="v" id="d_spam">0</div><div class="s" id="d_spamS">of 0 checked</div></div>
+        <div class="kpi good"><div class="l">Landed in inbox</div><div class="v" id="d_inbox">0</div><div class="s" id="d_inboxS">&nbsp;</div></div>
+        <div class="kpi"><div class="l">Promotions / other tab</div><div class="v" id="d_promo">0</div><div class="s">still delivered</div></div>
+        <div class="kpi"><div class="l">Not found yet</div><div class="v" id="d_miss">0</div><div class="s">checked again on refresh</div></div>
+        <div class="kpi bad"><div class="l">Bounced (real recipients)</div><div class="v" id="d_bounce">0</div><div class="s" id="d_bounceS">&nbsp;</div></div>
+      </div>
+      <div class="seeds" id="seedBox"></div>
+      <div class="warnbox hidden" id="dlvWarn"></div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn primary" id="addSeed">+ Add seed inbox</button>
+        <button class="btn" id="runCheck">Check now</button>
+        <span class="note" id="dlvStatus" style="margin:0;align-self:center"></span>
+      </div>
+      <div class="tbl" style="margin-top:14px;max-height:300px"><table id="dlvTbl"></table></div>
+      <div class="note"><b>How this works, and why it is accurate.</b> Gmail never tells a sender where an email landed in someone else&rsquo;s mailbox, so nobody can measure that for strangers. Instead, add a few of your own Gmail addresses as <b>seed inboxes</b> (sign in to each once). While sending, Efficient AI sends an identical copy to every seed at the start and every 25 emails, then opens each seed&rsquo;s mailbox and reads the real label Gmail gave it: Spam, Inbox, or a tab. That is a true measurement for those mailboxes and a good sample of how your real emails land at Gmail. It cannot see other providers or your real recipients&rsquo; inboxes. <b>Bounced</b> is exact: it comes from the undeliverable notices in your own mailbox.</div>
+    </div>
   </section>
 
   <section class="card">
@@ -129,7 +163,7 @@ tr.click{cursor:pointer}
     <div class="bd">
       <div class="tools">
         <input id="q" placeholder="Search email, name, business or subject" autocomplete="off">
-        <select id="fStatus"><option value="">All statuses</option><option value="sent">Sent</option><option value="failed">Failed</option><option value="test">Tests</option></select>
+        <select id="fStatus"><option value="">All statuses</option><option value="sent">Sent</option><option value="failed">Failed</option><option value="test">Tests</option><option value="seed">Seed checks</option><option value="bounced">Bounced</option></select>
         <select id="fDate"><option value="">All time</option><option value="0">Today</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select>
         <span id="runChip"></span>
         <button class="btn primary" id="export"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 21h16"/></svg>Export CSV</button>
@@ -141,6 +175,7 @@ tr.click{cursor:pointer}
   </section>
 </main>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -159,7 +194,7 @@ const DB = (() => {
   }));
   const tx = async (store, mode, fn) => { try { const d = await open(); return await new Promise((res, rej) => {
     const t = d.transaction(store, mode), q = fn(t.objectStore(store)); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error) }) } catch(e){ return null } };
-  return { all: s => tx(s, 'readonly', o => o.getAll()), add: (s, v) => tx(s, 'readwrite', o => o.add(v)), clear: s => tx(s, 'readwrite', o => o.clear()) };
+  return { all: s => tx(s, 'readonly', o => o.getAll()), add: (s, v) => tx(s, 'readwrite', o => o.add(v)), put: (s, v) => tx(s, 'readwrite', o => o.put(v)), clear: s => tx(s, 'readwrite', o => o.clear()) };
 })();
 
 /* ---------- helpers ---------- */
@@ -193,7 +228,7 @@ async function load(){
 
 /* ---------- KPIs ---------- */
 function renderKpis(){
-  const real = records.filter(r => r.status !== 'test');
+  const real = records.filter(r => r.status !== 'test' && !r.seed);
   const sent = real.filter(r => r.status === 'sent'), failed = real.filter(r => r.status === 'failed');
   const today = dayKey(new Date()), weekAgo = Date.now() - 7*864e5;
   const sentToday = sent.filter(r => dayKey(new Date(r.time)) === today).length;
@@ -213,7 +248,7 @@ function renderChart(){
   const days = [];
   for (let i = 29; i >= 0; i--){ const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - i); days.push({k: dayKey(d), d, s: 0, f: 0}) }
   const idx = Object.fromEntries(days.map((x, i) => [x.k, i]));
-  records.forEach(r => { if (r.status === 'test') return; const i = idx[dayKey(new Date(r.time))]; if (i === undefined) return; if (r.status === 'sent') days[i].s++; else days[i].f++ });
+  records.forEach(r => { if (r.status === 'test' || r.seed) return; const i = idx[dayKey(new Date(r.time))]; if (i === undefined) return; if (r.status === 'sent') days[i].s++; else days[i].f++ });
   const max = Math.max(1, ...days.map(x => x.s + x.f));
   $('chart').innerHTML = days.map(x => {
     const total = x.s + x.f, hs = 100 * x.s / max, hf = 100 * x.f / max;
@@ -248,7 +283,7 @@ function applyFilters(){
   let since = 0;
   if (fd !== ''){ const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - (+fd === 0 ? 0 : +fd - 1)); since = d.getTime() }
   view = records.filter(r =>
-    (!st || r.status === st) && (!runFilter || r.run === runFilter) && (!since || new Date(r.time).getTime() >= since) &&
+    (!st || r.status === st || (st === 'bounced' && r.bounced)) && (!runFilter || r.run === runFilter) && (!since || new Date(r.time).getTime() >= since) &&
     (!q || [r.to, r.name, r.business, r.subject, r.error].some(v => String(v || '').toLowerCase().includes(q))));
   const run = runs.find(r => r.id === runFilter);
   $('runChip').innerHTML = runFilter ? `<span class="chip">Run: ${esc(run ? fmtTime(run.started) : runFilter)} <button id="clearRun" title="Show all runs">&times;</button></span>` : '';
@@ -265,7 +300,7 @@ function renderTable(){
   const pages = Math.max(1, Math.ceil(view.length / PAGE)), slice = view.slice(page*PAGE, page*PAGE + PAGE);
   $('recTbl').innerHTML = '<thead><tr><th>Time</th><th>Recipient</th><th>Name</th><th>Business</th><th>Subject</th><th>Status</th><th>Details</th></tr></thead><tbody>' +
     (slice.length ? slice.map(r => `<tr><td class="m">${esc(fmtTime(r.time))}</td><td>${esc(r.to)}</td><td>${esc(r.name || '—')}</td><td>${esc(r.business || '—')}</td>` +
-      `<td title="${esc(r.subject)}">${esc(r.subject)}</td><td><span class="tag ${esc(r.status)}">${esc(r.status)}</span></td>` +
+      `<td title="${esc(r.subject)}">${esc(r.subject)}</td><td><span class="tag ${esc(r.status)}">${esc(r.status)}</span>${r.bounced ? ' <span class="tag failed">bounced</span>' : ''}${r.placement ? ' <span class="tag ' + (r.placement === 'spam' ? 'failed' : r.placement === 'inbox' ? 'sent' : 'test') + '">' + esc(r.placement) + '</span>' : ''}</td>` +
       `<td title="${esc(r.error)}">${r.error ? `<span class="err">${esc(r.error)}</span>` : `<span style="color:var(--muted)">${esc(r.from || '')}</span>`}</td></tr>`).join('')
     : '<tr><td class="empty" style="max-width:none" colspan="7"><b>No matching records</b>Try a different search or filter.</td></tr>') + '</tbody>';
   $('pageInfo').textContent = view.length ? `${n(page*PAGE + 1)}–${n(Math.min(view.length, (page+1)*PAGE))} of ${n(view.length)}` : '';
@@ -284,7 +319,7 @@ $('export').onclick = () => {
   const csv = '﻿' + head.join(',') + '\n' + view.map(r => [fmtTime(r.time), r.to, r.name, r.business, r.subject, r.status, r.error, r.from, r.run].map(cell).join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
-  a.download = `bulk-mailer-records-${dayKey(new Date())}.csv`; a.click();
+  a.download = `efficient-ai-records-${dayKey(new Date())}.csv`; a.click();
 };
 $('clear').onclick = async () => {
   if (!confirm('Delete all records and run history from this browser? This cannot be undone.\n\nYour list of already-emailed addresses is kept, so nobody gets emailed twice.')) return;
@@ -293,8 +328,136 @@ $('clear').onclick = async () => {
   runFilter = ''; load();
 };
 
-load();
-window.addEventListener('focus', load);
+/* ---------- spam & delivery check ---------- */
+const rd = k => { try { return localStorage.getItem('bm_' + k) } catch(e){ return null } };
+const wr = (k, v) => { try { localStorage.setItem('bm_' + k, v) } catch(e){} };
+const getSeeds = () => { try { return JSON.parse(rd('seeds') || '[]') } catch(e){ return [] } };
+const setSeeds = v => wr('seeds', JSON.stringify(v));
+async function gApi(data){
+  try { const r = await fetch('/api/google', {method:'POST', headers:{'Content-Type':'application/json','X-Requested-With':'XmlHttpRequest'}, body:JSON.stringify(data)}); return await r.json() }
+  catch(e){ return {ok:false, error:'Network error: ' + e.message} }
+}
+const toks = {};
+async function tokenFor(key, refresh){
+  const t = toks[key]; if (t && t.exp - Date.now() > 90000) return t.tok;
+  if (!refresh) return null;
+  const r = await gApi({action:'refresh', refresh_token: refresh});
+  if (!r.ok) return null;
+  toks[key] = {tok: r.access_token, exp: Date.now() + (r.expires_in || 3600)*1000}; return r.access_token;
+}
+async function gmail(tok, path){
+  const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/' + path, {headers:{Authorization:'Bearer ' + tok}});
+  if (!r.ok) throw new Error('Gmail ' + r.status); return r.json();
+}
+const hdr = (m, name) => ((m.payload && m.payload.headers || []).find(h => h.name.toLowerCase() === name) || {}).value || '';
+const norm = x => String(x || '').replace(/^\[test\]\s*/i, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+async function checkSeed(seed, recs){
+  const tok = await tokenFor('seed:' + seed.email, seed.refresh);
+  if (!tok) return {err: `Sign-in for ${seed.email} expired. Remove it and add it again.`};
+  const minT = Math.min(...recs.map(r => new Date(r.time).getTime())) - 120000;
+  const q = encodeURIComponent(`after:${Math.floor(minT/1000)}`);
+  const list = await gmail(tok, `messages?q=${q}&includeSpamTrash=true&maxResults=200`);
+  const msgs = [];
+  for (const m of (list.messages || []).slice(0, 200)){
+    const d = await gmail(tok, `messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From`);
+    msgs.push({subject: norm(hdr(d, 'subject')), from: hdr(d, 'from').toLowerCase(), t: +d.internalDate, labels: d.labelIds || []});
+  }
+  const used = new Set(); let changed = 0;
+  recs.sort((a, b) => a.time.localeCompare(b.time));
+  for (const r of recs){
+    const rt = new Date(r.time).getTime(), sender = (r.from || '').toLowerCase();
+    let best = -1;
+    msgs.forEach((m, i) => { if (used.has(i) || m.subject !== norm(r.subject) || (sender && !m.from.includes(sender)) || m.t < rt - 120000) return;
+      if (best < 0 || m.t < msgs[best].t) best = i });
+    let place = '';
+    if (best >= 0){
+      used.add(best); const L = msgs[best].labels;
+      place = L.includes('SPAM') ? 'spam' : L.includes('INBOX') ? (L.includes('CATEGORY_PROMOTIONS') ? 'promotions' : /CATEGORY_(SOCIAL|UPDATES|FORUMS)/.test(L.join()) ? 'other tab' : 'inbox') : (L.includes('TRASH') ? 'trash' : 'other');
+    } else if (Date.now() - rt > 15*60000) place = 'missing';
+    if (place !== (r.placement || '')){ r.placement = place; r.checked = new Date().toISOString(); await DB.put('records', r); changed++ }
+  }
+  return {changed};
+}
+async function checkBounces(){
+  const rt = rd('g_refresh'); if (!rt) return {skip:'no-login'};
+  if (rd('ro') !== '1') return {skip:'no-scope'};
+  const tok = await tokenFor('main', rt); if (!tok) return {skip:'expired'};
+  const real = records.filter(r => r.status === 'sent' && !r.seed && !r.test);
+  if (!real.length) return {changed:0};
+  const since = Math.max(Math.min(...real.map(r => new Date(r.time).getTime())), Date.now() - 30*864e5) - 60000;
+  const list = await gmail(tok, `messages?q=${encodeURIComponent('from:(mailer-daemon OR postmaster) after:' + Math.floor(since/1000))}&maxResults=200`);
+  const byTid = new Map(real.filter(r => r.tid).map(r => [r.tid, r])), byTo = new Map(real.map(r => [String(r.to).toLowerCase(), r]));
+  let changed = 0;
+  for (const m of (list.messages || [])){
+    const d = await gmail(tok, `messages/${m.id}?format=metadata&metadataHeaders=X-Failed-Recipients&metadataHeaders=Subject`);
+    const fails = hdr(d, 'x-failed-recipients').toLowerCase().split(/[,;\s]+/).filter(Boolean);
+    const hits = new Set(fails.map(f => byTo.get(f)).filter(Boolean)); if (!fails.length && byTid.has(d.threadId)) hits.add(byTid.get(d.threadId));
+    for (const r of hits){ if (!r.bounced){ r.bounced = true; r.bounceNote = hdr(d, 'subject'); await DB.put('records', r); changed++ } }
+  }
+  return {changed};
+}
+function renderDlv(){
+  const seeds = getSeeds(), sr = records.filter(r => r.seed && r.status === 'seed');
+  const cnt = p => sr.filter(r => r.placement === p).length;
+  const checked = sr.filter(r => r.placement && r.placement !== 'missing').length, spam = cnt('spam');
+  $('d_spam').textContent = n(spam); $('d_spamS').textContent = checked ? `${(100*spam/checked).toFixed(0)}% of ${n(checked)} checked` : 'no seed results yet';
+  $('d_inbox').textContent = n(cnt('inbox')); $('d_inboxS').textContent = checked ? `${(100*cnt('inbox')/checked).toFixed(0)}% of checked` : ' ';
+  $('d_promo').textContent = n(cnt('promotions') + cnt('other tab'));
+  $('d_miss').textContent = n(sr.filter(r => !r.placement || r.placement === 'missing').length);
+  const bn = records.filter(r => r.bounced), sentN = records.filter(r => r.status === 'sent' && !r.seed).length;
+  $('d_bounce').textContent = n(bn.length); $('d_bounceS').textContent = sentN ? `${(100*bn.length/sentN).toFixed(1)}% of ${n(sentN)} sent` : ' ';
+  $('seedBox').innerHTML = seeds.length ? '<span class="note" style="margin:0">Seed inboxes:</span>' + seeds.map(x => `<span class="seedrow">${esc(x.email)}<button data-rm="${esc(x.email)}" title="Remove">&times;</button></span>`).join('')
+    : '<span class="note" style="margin:0">No seed inboxes yet. Add 2 or 3 of your own Gmail addresses to measure spam placement.</span>';
+  const rows = sr.filter(r => r.placement && r.placement !== 'inbox').concat(bn.filter(r => !r.seed)).slice(0, 200);
+  $('dlvTbl').innerHTML = rows.length ? '<thead><tr><th>Time</th><th>Mailbox / recipient</th><th>Subject</th><th>Result</th></tr></thead><tbody>' +
+    rows.sort((a, b) => b.time.localeCompare(a.time)).map(r => `<tr><td class="m">${esc(fmtTime(r.time))}</td><td>${esc(r.to)}</td><td title="${esc(r.subject)}">${esc(r.subject)}</td><td><span class="tag ${r.bounced || r.placement === 'spam' ? 'failed' : 'test'}">${esc(r.bounced ? 'bounced' : r.placement)}</span></td></tr>`).join('') + '</tbody>'
+    : '<tbody><tr><td class="empty" style="max-width:none"><b>Nothing in spam, nothing bounced</b>Results appear here after a run that included seed inboxes.</td></tr></tbody>';
+  const warn = [];
+  if (rd('g_refresh') && rd('ro') !== '1') warn.push('Bounce scanning needs one more permission. On the Send page click Sign out, then Continue with Google, and tick &ldquo;Read your email&rdquo; when Google asks.');
+  $('dlvWarn').innerHTML = warn.join(' '); $('dlvWarn').classList.toggle('hidden', !warn.length);
+}
+let checking = false;
+async function runCheck(){
+  if (checking) return; checking = true; $('runCheck').disabled = true; $('dlvStatus').textContent = 'Checking mailboxes…';
+  const msgs = [];
+  try {
+    for (const sd of getSeeds()){
+      const recs = records.filter(r => r.seed && r.status === 'seed' && String(r.to).toLowerCase() === sd.email.toLowerCase() && r.placement !== 'spam' && r.placement !== 'inbox' && r.placement !== 'promotions' && r.placement !== 'other tab' && Date.now() - new Date(r.time) < 14*864e5);
+      if (!recs.length) continue;
+      try { const x = await checkSeed(sd, recs); if (x.err) msgs.push(x.err) } catch(e){ msgs.push(`Could not read ${sd.email}: ${e.message}`) }
+    }
+    try { const b = await checkBounces(); if (b.skip === 'expired') msgs.push('Your main Google sign-in expired, so bounces could not be scanned.') } catch(e){ msgs.push('Bounce scan failed: ' + e.message) }
+  } finally { checking = false; $('runCheck').disabled = false }
+  records = (await DB.all('records')) || []; records.sort((a, b) => (b.time || '').localeCompare(a.time || ''));
+  renderDlv(); renderKpis(); applyFilters();
+  $('dlvStatus').textContent = msgs.length ? msgs.join(' ') : 'Checked ' + new Date().toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'});
+}
+$('runCheck').onclick = runCheck;
+$('seedBox').addEventListener('click', e => { const em = e.target.dataset && e.target.dataset.rm; if (!em) return; setSeeds(getSeeds().filter(x => x.email !== em)); renderDlv() });
+$('addSeed').onclick = async () => {
+  const cfg = await (await fetch('/api/google')).json().catch(() => ({}));
+  if (!cfg.client_id) return $('dlvStatus').textContent = 'Google sign-in is not configured on this site.';
+  if (!window.google || !google.accounts) return $('dlvStatus').textContent = 'Google sign-in is still loading. Try again in a moment.';
+  google.accounts.oauth2.initCodeClient({client_id: cfg.client_id, scope:'openid email https://www.googleapis.com/auth/gmail.readonly', ux_mode:'popup', select_account:true,
+    callback: async resp => {
+      if (resp.error) return $('dlvStatus').textContent = 'Google sign-in failed: ' + (resp.error_description || resp.error);
+      if (!/gmail\.readonly/.test(resp.scope || '')) return $('dlvStatus').textContent = 'Please tick “Read your email” so the seed inbox can be checked.';
+      const r = await gApi({action:'exchange', code: resp.code});
+      if (!r.ok || !r.refresh_token) return $('dlvStatus').textContent = 'Could not save this seed: ' + (r.error || 'Google gave no long-term access. Remove the app at myaccount.google.com/permissions and try again.');
+      let email = ''; try { email = (await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {headers:{Authorization:'Bearer ' + r.access_token}})).json()).email } catch(e){}
+      if (!email) return $('dlvStatus').textContent = 'Could not read that account’s email address.';
+      const main = (records.find(x => x.from) || {}).from;
+      if (main && main.toLowerCase() === email.toLowerCase()) return $('dlvStatus').textContent = 'A seed must be a different mailbox from the one you send from.';
+      const seeds = getSeeds().filter(x => x.email.toLowerCase() !== email.toLowerCase()); seeds.push({email, refresh: r.refresh_token}); setSeeds(seeds);
+      $('dlvStatus').textContent = `Added ${email}. It will get a copy during your next run.`; renderDlv();
+    }, error_callback: e => $('dlvStatus').textContent = e && e.type === 'popup_closed' ? 'The Google window was closed.' : 'Google sign-in failed.'
+  }).requestCode();
+};
+
+load().then(() => { renderDlv(); runCheck() });
+window.addEventListener('focus', () => load().then(renderDlv));
+setInterval(() => { if (!document.hidden && getSeeds().length) runCheck() }, 120000);
 </script>
 </body>
 </html>

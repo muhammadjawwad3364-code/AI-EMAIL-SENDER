@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bulk Mailer</title>
+<title>Efficient AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -135,7 +135,7 @@ details summary::-webkit-details-marker{display:none}
 <body>
 <header><div class="bar">
   <div class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></div>
-  <div><h1>Bulk Mailer</h1><div class="sub">Personalized emails from your spreadsheet</div></div>
+  <div><h1>Efficient AI</h1><div class="sub">Personalized emails from your spreadsheet</div></div>
   <nav class="nav"><a href="/" class="on">Send</a><a href="/records.html">Records</a></nav>
   <span class="pill" id="pill">Not connected</span>
 </div></header>
@@ -401,7 +401,7 @@ $('accKey').addEventListener('keydown', e => { if (e.key === 'Enter') connect() 
 function forget(k){ try{ localStorage.removeItem('bm_'+k) }catch(e){} }
 
 /* ---------- connect: Google ---------- */
-const G_SCOPE = 'openid email profile https://www.googleapis.com/auth/gmail.send';
+const G_SCOPE = 'openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly';
 let gCfg = {client_id:'', smtp:false}, gTok = null, gExp = 0, codeClient = null;
 
 async function gApi(data){
@@ -456,6 +456,7 @@ $('gSignIn').onclick = async () => {
 async function onCode(resp){
   if (resp.error) return note('accNote','bad','Google sign-in failed: ' + esc(resp.error_description || resp.error));
   if (!/gmail\.send/.test(resp.scope || '')) return note('accNote','bad','Please allow "Send email on your behalf" when Google asks, then try again.');
+  store('ro', /gmail\.readonly/.test(resp.scope || '') ? '1' : '');
   note('accNote','warn','Finishing sign-in…');
   const r = await gApi({action:'exchange', code: resp.code});
   if (!r.ok) return note('accNote','bad','Google sign-in failed: ' + esc(r.error));
@@ -515,7 +516,7 @@ async function sendOne(test, to, subject, body, att){
   const raw = b64url(buildMime({fromName, from: sender.from, to: dest, subject: (test ? '[TEST] ' : '') + subject, body, attachments: att}));
   try {
     const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {method:'POST', headers:{Authorization:'Bearer ' + gTok, 'Content-Type':'application/json'}, body: JSON.stringify({raw})});
-    if (r.ok) return {ok:true, to: dest};
+    if (r.ok){ const j = await r.json().catch(() => ({})); return {ok:true, to: dest, gid:j.id || '', tid:j.threadId || ''} }
     const j = await r.json().catch(() => ({}));
     const msg = (j.error && j.error.message) || ('Gmail error ' + r.status);
     if (r.status === 401){ gTok = null; return {ok:false, error: msg} }
@@ -743,6 +744,15 @@ $('stop').onclick = () => { stopFlag = true; $('runState').textContent = 'Stoppi
 $('skipWait').onclick = () => { skipFlag = true };
 window.addEventListener('beforeunload', e => { if (running){ e.preventDefault(); e.returnValue = '' } });
 
+function seedList(){ try { return JSON.parse(recall('seeds') || '[]').map(x => x.email).filter(Boolean) } catch(e){ return [] } }
+async function sendSeeds(subj, body, att, runId){
+  for (const sd of seedList()){
+    if (stopFlag) break;
+    const r = await sendOne(false, sd, subj, body, att);
+    addLog(r.ok ? 'info' : 'warn', r.ok ? `Spam-check copy sent to seed inbox ${sd}` : `Seed copy to ${sd} failed: ${r.error}`);
+    DB.add('records', {time: new Date().toISOString(), to: sd, name:'', business:'', subject: subj, status: r.ok ? 'seed' : 'failed', error: r.ok ? '' : r.error, run: runId, from: sender.from, seed: true, tid: r.tid || '', gid: r.gid || '', placement: ''});
+  }
+}
 $('start').onclick = async () => {
   const err = checkReady(); if (err) return note('sendNote','bad',err);
   const lim = +$('limit').value || 0, left = lim ? Math.max(0, lim - sentToday()) : Infinity;
@@ -775,6 +785,7 @@ $('start').onclick = async () => {
     const row = rows[queue[k]], to = String(row[emailCol]).trim();
     $('r_next').textContent = 'sending…'; $('runState').textContent = `Sending ${k+1} of ${queue.length}`;
     const subj = render(subjectTpl, row).out, body = render(bodyTpl, row).out;
+    if (k % 25 === 0 && seedList().length) await sendSeeds(subj, body, att, run.id);
     let r, tries = 0;
     while (true){
       r = await sendOne(false, to, subj, body, att);
@@ -786,7 +797,7 @@ $('start').onclick = async () => {
     if (r.ok){ sent++; sentMap[to.toLowerCase()] = stamp(); saveHist(); addLog('ok', `Sent to ${to}`) }
     else { failed++; addLog('bad', `Failed ${to}: ${r.error}`); if (r.fatal) fatal = r.error }
     DB.add('records', {time: new Date().toISOString(), to, name: pick(row, /^(full ?|first ?)?name$/i), business: pick(row, /business|company|shop|store|brand/i),
-                       subject: subj, status: r.ok ? 'sent' : 'failed', error: r.ok ? '' : r.error, run: run.id, from: sender.from});
+                       subject: subj, status: r.ok ? 'sent' : 'failed', error: r.ok ? '' : r.error, run: run.id, from: sender.from, tid: r.tid || '', gid: r.gid || ''});
     run.sent = sent; run.failed = failed; DB.put('runs', run);
     progress(k+1, queue.length, sent, failed);
     if (fatal) break;
