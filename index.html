@@ -306,6 +306,11 @@ details summary::-webkit-details-marker{display:none}
         <button class="link" id="exportHist">Download sent history (CSV)</button>
         <button class="link" id="clearHist">Clear history</button>
       </div>
+      <div class="row" style="margin-top:10px;gap:8px;align-items:flex-start">
+        <textarea id="forgetBox" rows="2" style="flex:1;min-height:0" placeholder="Remove only some people from history: paste email addresses (one per line or comma separated)"></textarea>
+        <button class="btn" id="forgetBtn">Remove selected</button>
+      </div>
+      <div class="hint" id="forgetNote"></div>
     </div>
   </section>
 </div>
@@ -379,6 +384,15 @@ function renderHist(){ const n = Object.keys(sentMap).length; $('histInfo').text
 $('exportHist').onclick = () => {
   const csv = 'email,sent_at\n' + Object.entries(sentMap).map(([e,t]) => `${e},${t}`).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = 'sent_history.csv'; a.click();
+};
+$('forgetBtn').onclick = () => {
+  if (running) return $('forgetNote').textContent = 'Wait until the current run finishes.';
+  const list = ($('forgetBox').value.match(/[^\s,;<>"']+@[^\s,;<>"']+/g) || []).map(x => x.toLowerCase());
+  if (!list.length) return $('forgetNote').textContent = 'Paste at least one email address.';
+  const hit = list.filter(e => sentMap[e]), miss = list.filter(e => !sentMap[e]);
+  hit.forEach(e => delete sentMap[e]); saveHist(); if (rows.length) analyze();
+  $('forgetBox').value = '';
+  $('forgetNote').textContent = `Removed ${hit.length} from history; they can be emailed again.` + (miss.length ? ` Not in history: ${miss.join(', ')}.` : '');
 };
 $('clearHist').onclick = () => {
   if (running) return;
